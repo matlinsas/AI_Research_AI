@@ -20,8 +20,8 @@
   <article>
     <p class="metadata">技术总结 · 2026-10-26 · 中文</p>
     <h2>从模型算子到 GPU 硬件执行</h2>
-    <p class="intro">围绕 Attention、MoE、Gated DeltaNet 和 Mamba / SSM 展开五层关系图，比较 Prefill 与 Decode 的执行路径、缓存行为和主要 GPU 瓶颈，并提供按主流模型整理的独立索引。</p>
-    <div class="facts"><span>79 项算子与实现路径</span><span>19 个模型 / 版本</span><span>5 张技术示意图</span><span>交互式五层映射</span></div>
+    <p class="intro">围绕 Attention、MoE、Gated DeltaNet 和 Mamba / SSM 展开五层关系图，比较 Prefill 与 Decode 的执行路径、缓存行为和主要 GPU 瓶颈。19 个模型 / 版本各配一张结构图，连接整体层堆叠、层内数据流和硬件执行。</p>
+    <div class="facts"><span>79 项算子与实现路径</span><span>19 张模型结构图</span><span>5 张技术示意图</span><span>交互式五层映射</span></div>
     <div class="actions">
       <a class="primary" href="./从模型算子到GPU%20硬件执行.html">阅读全文 →</a>
       <a href="./从模型算子到GPU%20硬件执行.html" download="从模型算子到GPU 硬件执行.html">下载 HTML</a>
@@ -31,7 +31,7 @@
       <a href="./从模型算子到GPU%20硬件执行.html#moe"><h3>MoE 与专家路由</h3><p>Grouped GEMM、token 重排、负载不均与专家并行通信。</p></a>
       <a href="./从模型算子到GPU%20硬件执行.html#gdn"><h3>Gated DeltaNet</h3><p>Chunk / WY 与单步状态更新，比较预填充和生成阶段。</p></a>
       <a href="./从模型算子到GPU%20硬件执行.html#ssm"><h3>Mamba / SSM</h3><p>Selective Scan、SSD、短卷积与 recurrent state。</p></a>
-      <a href="./从模型算子到GPU%20硬件执行.html#models"><h3>主流模型独立索引</h3><p>按明确模型版本查看结构组合、实现路径和适用边界。</p></a>
+      <a href="./从模型算子到GPU%20硬件执行.html#models"><h3>19 个模型的结构图与索引</h3><p>逐个展开模型，查看层堆叠、Attention / MoE / SSM 数据流、残差和缓存。</p></a>
       <a href="./从模型算子到GPU%20硬件执行.html#operators"><h3>完整算子目录</h3><p>搜索 79 个条目的数学语义、原语、kernel、瓶颈与来源。</p></a>
     </nav>
     <p class="note">公式使用 LaTeX 排版；正文、字体和图示包含在单个 HTML 中，下载后可离线阅读。报告支持算子搜索、模型 / 阶段切换和打印。</p>
