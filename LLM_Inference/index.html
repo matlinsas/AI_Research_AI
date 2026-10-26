@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="LLM 推理算子与 GPGPU 技术总结：五层映射、Attention、MoE、Gated DeltaNet、Mamba/SSM、主流模型以及 Prefill 与 Decode 的 GPU 瓶颈。">
+  <title>LLM Inference · AI Research</title>
+  <style>
+    :root{color-scheme:light;--ink:#182b3a;--muted:#536976;--accent:#006d77;--line:#dbe4e8;--wash:#f3f7f8}
+    *{box-sizing:border-box}body{margin:0;color:var(--ink);background:#fff;font:16px/1.8 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1000px;margin:auto;padding:60px 28px}a{color:var(--accent);text-underline-offset:4px}.eyebrow{font-size:12px;letter-spacing:2px;color:var(--accent);font-weight:650}h1{font-size:48px;line-height:1.2;margin:20px 0}h2{font-size:28px;line-height:1.4;margin:10px 0 16px}h3{font-size:17px;margin:0 0 7px}p{margin:12px 0;color:var(--muted)}header{padding-bottom:30px;border-bottom:2px solid var(--ink)}article{padding:38px 0}.metadata{font-size:13px}.intro{font-size:18px;max-width:780px}.actions{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:25px 0}.primary{display:inline-block;padding:10px 20px;border-radius:5px;background:var(--accent);color:#fff;text-decoration:none;font-weight:600}.primary:hover{background:#00515a}.facts{display:flex;gap:12px 26px;flex-wrap:wrap;margin:22px 0;font-size:14px}.topics{display:grid;grid-template-columns:1fr 1fr;gap:0 30px;margin-top:30px}.topics a{display:block;padding:20px 0;border-top:1px solid var(--line);text-decoration:none}.topics p{font-size:14px;margin:0}.topics a:hover h3{text-decoration:underline}.note{padding:18px 22px;background:var(--wash);font-size:14px}footer{padding-top:25px;border-top:1px solid var(--line);font-size:13px}a:focus-visible{outline:3px solid #50a8b5;outline-offset:5px}@media(max-width:600px){main{padding:36px 22px}h1{font-size:36px}h2{font-size:25px}.intro{font-size:16px}.topics{grid-template-columns:1fr}.facts{gap:8px 20px}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">AI RESEARCH / TECHNICAL REPORTS</div>
+    <h1>LLM Inference</h1>
+    <p>从模型结构、数学算子和并行原语，一直看到 GPU kernel 与硬件执行。</p>
+  </header>
+  <article>
+    <p class="metadata">技术总结 · 2026-10-26 · 中文</p>
+    <h2>从模型算子到 GPU 硬件执行</h2>
+    <p class="intro">围绕 Attention、MoE、Gated DeltaNet 和 Mamba / SSM 展开五层关系图，比较 Prefill 与 Decode 的执行路径、缓存行为和主要 GPU 瓶颈，并提供按主流模型整理的独立索引。</p>
+    <div class="facts"><span>79 项算子与实现路径</span><span>19 个模型 / 版本</span><span>5 张技术示意图</span><span>交互式五层映射</span></div>
+    <div class="actions">
+      <a class="primary" href="./从模型算子到GPU%20硬件执行.html">阅读全文 →</a>
+      <a href="./从模型算子到GPU%20硬件执行.html" download="从模型算子到GPU 硬件执行.html">下载 HTML</a>
+    </div>
+    <nav class="topics" aria-label="报告章节快捷入口">
+      <a href="./从模型算子到GPU%20硬件执行.html#attention"><h3>Attention / MLA / DSA</h3><p>分块融合、在线归约、分页 KV、压缩缓存与稀疏索引。</p></a>
+      <a href="./从模型算子到GPU%20硬件执行.html#moe"><h3>MoE 与专家路由</h3><p>Grouped GEMM、token 重排、负载不均与专家并行通信。</p></a>
+      <a href="./从模型算子到GPU%20硬件执行.html#gdn"><h3>Gated DeltaNet</h3><p>Chunk / WY 与单步状态更新，比较预填充和生成阶段。</p></a>
+      <a href="./从模型算子到GPU%20硬件执行.html#ssm"><h3>Mamba / SSM</h3><p>Selective Scan、SSD、短卷积与 recurrent state。</p></a>
+      <a href="./从模型算子到GPU%20硬件执行.html#models"><h3>主流模型独立索引</h3><p>按明确模型版本查看结构组合、实现路径和适用边界。</p></a>
+      <a href="./从模型算子到GPU%20硬件执行.html#operators"><h3>完整算子目录</h3><p>搜索 79 个条目的数学语义、原语、kernel、瓶颈与来源。</p></a>
+    </nav>
+    <p class="note">公式使用 LaTeX 排版；正文、字体和图示包含在单个 HTML 中，下载后可离线阅读。报告支持算子搜索、模型 / 阶段切换和打印。</p>
+  </article>
+  <footer><a href="https://github.com/matlinsas/AI_Research_AI/tree/main/LLM_Inference">查看 GitHub 目录</a></footer>
+</main>
+</body>
+</html>
