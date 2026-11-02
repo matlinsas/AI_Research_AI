@@ -1,0 +1,521 @@
+{
+  "date": "2026-11-02",
+  "capacity_unit": "1 kB = 1024 B",
+  "features": [
+    [
+      "执行与数值",
+      "CU / wave 执行模型",
+      "Wave64；4×SIMD16 / CU；标量 + 向量",
+      "Vega 延续此基本执行模型",
+      "仍为 Wave64 与 4×SIMD16；加入矩阵执行资源",
+      "继承 + 扩展；不是 RDNA 式 WGP / Wave32 转型。",
+      "gcn-manual@21,whitepaper1@5,llvm-targets"
+    ],
+    [
+      "执行与数值",
+      "普通 FP32 FMA",
+      "128 FLOPs/CU/cycle",
+      "MI50：128",
+      "128；Matrix FP32 为另一条 256 的路径",
+      "普通 FP32 每 CU 没有翻倍；更多 CU、频率和矩阵专用硬件要分别统计。",
+      "polaris-whitepaper@21,whitepaper1@6,matrix12"
+    ],
+    [
+      "执行与数值",
+      "Packed FP16 / Rapid Packed Math",
+      "已有单值 FP16 VALU；没有 Vega 的 V_PK_* packed 路径",
+      "Vega 新增 V_PK_FMA_F16 等 packed 16-bit 算术",
+      "继承 packed FP16；向量峰值 256 FLOPs/CU/cycle",
+      "Vega 阶段增量；不能说 CDNA1 首次支持 FP16，也不能把 256 当 Matrix FP16。",
+      "gcn-manual@13,vega-manual@10,vega-manual@11,fp16-vega,whitepaper1@6"
+    ],
+    [
+      "执行与数值",
+      "Vector FP64",
+      "旧 ISA 已有 V_FMA_F64；具体吞吐依 SKU",
+      "高 FP64 速率在 Vega20 / MI50 已有：64 / CU / cycle",
+      "64 FLOPs/CU/cycle，保持 MI50 水平",
+      "相对 Polaris 产品可有大幅提高，但不归因于 CDNA1 首创新 FP64 算术。",
+      "gcn-manual,whitepaper1@6"
+    ],
+    [
+      "执行与数值",
+      "原生 Matrix Core / MFMA",
+      "无 MFMA / 专用矩阵路径",
+      "MI50 用向量管线执行矩阵算法",
+      "新增 wave 级 MFMA；FP32、FP16、BF16、INT8 输入",
+      "CDNA1 核心新增。矩阵操作跨 lane 组织数据，并非单线程 vector FMA 的新拼写。",
+      "whitepaper1@5,whitepaper1@6,isa1@11"
+    ],
+    [
+      "执行与数值",
+      "BF16 矩阵",
+      "无原生 BF16 MFMA",
+      "本表所引 MI50 比较为 N/A",
+      "BF16 输入、FP32 累加；512 FLOPs/CU/cycle",
+      "CDNA1 新矩阵类型；本代 BF16 峰值只有 FP16 的一半。",
+      "whitepaper1@5,whitepaper1@6,matrix12"
+    ],
+    [
+      "执行与数值",
+      "INT8 矩阵与低位宽点积",
+      "没有 CDNA1 的 INT8 MFMA；普通整数运算仍存在",
+      "Vega 系列的 dot 支持随 gfx900 / gfx906 等目标区分",
+      "INT8→INT32 MFMA：1,024 IOPs/CU/cycle；另增 DOT*C 形式",
+      "MFMA 与 VALU dot 分开；不得将 Vega10、Vega20 的指令能力一概而论。",
+      "isa1@11,matrix12,llvm-targets"
+    ],
+    [
+      "执行与数值",
+      "新增 VALU 累加 / packed 形式",
+      "无 MI100 手册列出的这组新增形式",
+      "已有部分 packed 算术 / dot 基础",
+      "V_DOT2C_*、V_DOT4C_*、V_DOT8C_*、V_PK_FMAC_F16",
+      "以 MI100 Feature Changes 的明确新增列表为依据；不推断 dot 概念整体首次出现。",
+      "isa1@11,vega-manual@11"
+    ],
+    [
+      "执行与数值",
+      "浮点内存原子加",
+      "有整数原子和 LDS 的相关操作；不是没有 atomic",
+      "已有独立 GLOBAL 地址空间与相应原子框架",
+      "GLOBAL / BUFFER 新增 F32 ADD 与 packed F16 ADD",
+      "这里只认定手册列出的四条新增；FP64 原子及 FP64 MFMA 不属于本代新增。",
+      "isa1@11,gcn-manual,vega-manual@11"
+    ],
+    [
+      "寄存器与存储",
+      "AGPR / accumulation 寄存器",
+      "普通 VGPR 命名空间；无矩阵 AGPR",
+      "无 CDNA1 的独立 MFMA 累加池",
+      "固定 256 kB VGPR + 256 kB AGPR / CU；READ / WRITE 互搬",
+      "CDNA1 新增；合计 512 kB 不是统一可任意分配的 VGPR 池。统一池是后续 CDNA2。",
+      "memory-specs,pipeline-resources,isa1@11"
+    ],
+    [
+      "寄存器与存储",
+      "LDS 容量 / banks",
+      "GCN 图示为 64 kB / CU；32-bank 模型",
+      "沿用每 CU 局部共享存储",
+      "64 kB / CU；32 banks；128 byte/CU/cycle 无冲突峰值",
+      "容量保持。旧手册图文存在 64 / 32 kB 口径冲突，详见定量表下注；不把 GDS 当 LDS。",
+      "gcn-manual@21,gcn-manual@22,memory-specs,hip-hardware"
+    ],
+    [
+      "寄存器与存储",
+      "Vector L1 与 L2",
+      "Polaris 保留每 CU L1、芯片共享 L2；增强 DCC",
+      "Vega 已更新缓存 / 内存体系",
+      "MI100：16 kB vector L1 / CU；8 MB L2 / GPU",
+      "MI100 L2 为 32 slices×64 B/cycle = 2,048 byte/GPU/cycle。Polaris 不同芯片的 L2 不统一。",
+      "polaris-whitepaper@9,polaris-whitepaper@10,whitepaper1@4,memory-specs"
+    ],
+    [
+      "寄存器与存储",
+      "GLOBAL / SCRATCH 指令族",
+      "有 FLAT、BUFFER 等路径",
+      "Vega 手册已明确新增 GLOBAL / SCRATCH 显式访存及 scalar scratch",
+      "继承相关访存模型，并扩展特定原子操作",
+      "Vega 阶段变化，不能把全部 GLOBAL_* / SCRATCH_* 列为 CDNA1 首次新增。",
+      "gcn-manual,vega-manual@11,isa1@11"
+    ],
+    [
+      "寄存器与存储",
+      "Scalar memory / descriptors",
+      "旧代已有 scalar memory load / store",
+      "Vega 增加 scalar memory atomics，修改资源 / sampler 描述符位域",
+      "继承 GFX9 体系；手写代码须按 gfx908 手册与 ABI",
+      "内存语义、描述符与编码兼容性不能只靠名称判断。",
+      "gcn-manual@13,vega-manual@11,llvm-targets,isa1"
+    ],
+    [
+      "寄存器与存储",
+      "DPP / SDWA / lane 交换",
+      "旧 GFX8 已有 DPP、SDWA、DS_PERMUTE / BPERMUTE",
+      "Vega 在相关编码和类型上继续扩展",
+      "继续用于 lane 数据布局与矩阵数据准备",
+      "继承；不是 CDNA1 新发明。DPP 作为数据并行修饰与旧框图的 DPP array 名称要区分。",
+      "gcn-manual@13,vega-manual,isa1"
+    ],
+    [
+      "寄存器与存储",
+      "GDS 与 GWS",
+      "旧 ISA 包含共享 GDS / GWS 与 DS 指令",
+      "仍有相关路径",
+      "MI100 手册仍包含 GDS / GWS 内容",
+      "不能把后续 CDNA2 的 GDS / SRC2 DS 精简提前放到 CDNA1。实际使用受平台和指令限制。",
+      "gcn-manual@22,isa1"
+    ],
+    [
+      "图形与调度",
+      "固定功能图形硬件",
+      "Polaris 面向图形：几何、光栅、渲染后端、显示",
+      "Vega 仍属于图形 / 计算架构",
+      "CDNA1 去除 rasterization、tessellation、graphics caches、blending、display 固定硬件",
+      "架构定位转向 HPC / AI；Polaris 的 DCC / 渲染后端优势不能直接迁移为 CDNA1 图形特性。",
+      "polaris-whitepaper@4,polaris-whitepaper@9,whitepaper1@4"
+    ],
+    [
+      "图形与调度",
+      "EXPORT / EMIT / CUT 的真实边界",
+      "旧图形 ISA 有 export 与 shader 消息路径",
+      "Vega 仍有图形使用场景",
+      "MI100 明确：EXPORT 不工作；EMIT / CUT 消息不得发出",
+      "即使 XML / 手册还留有 EXP、IMAGE、V_INTERP 名称，也不证明有可用的完整图形管线。",
+      "isa1@10,isa-xml"
+    ],
+    [
+      "图形与调度",
+      "视频 / 多媒体逻辑",
+      "Polaris 提供媒体编码、解码与显示能力",
+      "不同 Vega 产品配置不同",
+      "CDNA1 白皮书明确保留 HEVC、H.264、VP9 解码逻辑",
+      "去除图形硬件不等于去除全部媒体功能；这里不推断 MI100 保留 Polaris 的显示或编码能力。",
+      "polaris-whitepaper,whitepaper1@4"
+    ],
+    [
+      "图形与调度",
+      "ACE / HWS / 异步计算",
+      "已有 ACE / HWS；Polaris 有 Quick Response Queue 与 CU reservation",
+      "异步调度并非 CDNA1 首次引入",
+      "MI100 四个 ACE 管理任务流 / wave dispatch",
+      "计算专用定位与新增矩阵资源，不等于新发明异步执行。旧 QoS API 不自动等于 MI100 软件接口。",
+      "polaris-whitepaper@4,polaris-whitepaper@5,polaris-whitepaper@6,whitepaper1@5"
+    ],
+    [
+      "平台与软件",
+      "显存与可靠性",
+      "Polaris 产品使用 GDDR5；MI6 公告为 16 GB",
+      "HBM / HBM2 在更早 Fiji / Vega 产品已出现",
+      "MI100：32 GB HBM2、约 1.23 TB/s、硬件 ECC",
+      "这是 Polaris→MI100 的产品变化；HBM2 不是 CDNA1 首次使用的内存技术。",
+      "mi6-announcement,whitepaper1@4,product1"
+    ],
+    [
+      "平台与软件",
+      "GPU 间 Infinity Fabric",
+      "Polaris 的 PCIe peer-to-peer 与 IF 专用链路应区分",
+      "MI50 已有两条 GPU 间 IF，四卡可成环",
+      "MI100 增至三条 GPU 间 IF，支持四 GPU 全互连 hive",
+      "相对 MI50 新增第三条链路。GPU 间一致性不能泛化成任意 CPU-GPU 平台完全 coherent。",
+      "whitepaper1@4"
+    ],
+    [
+      "平台与软件",
+      "制程 / CU 数 / PCIe",
+      "Polaris 为 14nm FinFET；RX480 为 36 CU 示例",
+      "Vega20 已进入 7nm，并有 PCIe4 平台能力",
+      "MI100：7nm、120 启用 CU、PCIe4 x16",
+      "产品规模与平台扩展；不能直接当作每 CU 算术单元提升倍数。",
+      "polaris-whitepaper@2,polaris-whitepaper@22,whitepaper1@3,product1"
+    ],
+    [
+      "平台与软件",
+      "编译目标与后续特性边界",
+      "Polaris10 / 11 通常为 gfx803；gfx803 也含 Fiji",
+      "Vega10 gfx900、Vega20 gfx906",
+      "MI100 为 gfx908；无原生 Matrix FP64、TF32 / XF32、FP8 / FP6 / FP4",
+      "源代码可迁移需重编译 / 调优；不能承诺 GFX8 二进制兼容。后续 CDNA 特性不回填本代。",
+      "llvm-targets,llvm-processors,isa1,isa-xml,matrix12"
+    ]
+  ],
+  "metrics": [
+    [
+      "普通 Vector FP32 FMA",
+      "FLOPs/CU/cycle",
+      "128",
+      "128",
+      "64 lanes × 2；MI100 官方表直接给出。",
+      "polaris-whitepaper@21,whitepaper1@6"
+    ],
+    [
+      "Vector FP16",
+      "FLOPs/CU/cycle",
+      "128（非 packed 路径）",
+      "256（packed）",
+      "Polaris 单值 FP16；Vega 已引入 packed，非 CDNA1 首创。",
+      "gcn-manual@13,mi6-announcement,fp16-vega,whitepaper1@6"
+    ],
+    [
+      "Vector FP64 FMA",
+      "FLOPs/CU/cycle",
+      "随 SKU；本表不量化",
+      "64",
+      "ISA 有 FP64 不等于与 FP32 同速；MI50 已是 64。",
+      "gcn-manual,whitepaper1@6"
+    ],
+    [
+      "Matrix FP32 dense",
+      "FLOPs/CU/cycle",
+      "无专用 MFMA",
+      "256",
+      "GCN 可在向量管线做 GEMM，不能写成没有矩阵算法能力。",
+      "whitepaper1@5,whitepaper1@6"
+    ],
+    [
+      "Matrix FP16 dense",
+      "FLOPs/CU/cycle",
+      "无专用 MFMA",
+      "1,024",
+      "相对 Polaris 非 packed 向量峰值为 8×；相对 Vega / MI50 packed 为 4×。",
+      "whitepaper1@6,fp16-vega"
+    ],
+    [
+      "Matrix BF16 dense",
+      "FLOPs/CU/cycle",
+      "无原生 MFMA",
+      "512",
+      "FP32 累加；本代 BF16 只有 FP16 一半速率。",
+      "matrix12,whitepaper1@6"
+    ],
+    [
+      "Matrix INT8 dense",
+      "IOPs/CU/cycle",
+      "无专用 MFMA",
+      "1,024",
+      "INT32 累加；整数用 IOPs，不写 FLOPs。",
+      "matrix12,whitepaper1@6"
+    ],
+    [
+      "Matrix FP64",
+      "FLOPs/CU/cycle",
+      "无原生 MFMA",
+      "无原生 MFMA",
+      "CDNA2 才新增 FP64 MFMA。",
+      "matrix12,isa1"
+    ],
+    [
+      "Matrix TF32 / XF32",
+      "FLOPs/CU/cycle",
+      "无原生路径",
+      "无原生路径",
+      "FP32 MFMA 不等于 TF32。",
+      "isa1,isa-xml"
+    ],
+    [
+      "Matrix FP8 / FP6 / FP4",
+      "FLOPs/CU/cycle",
+      "均无原生路径",
+      "均无原生路径",
+      "软件量化 / 解包不等于对应原生矩阵硬件。",
+      "isa1,isa-xml"
+    ],
+    [
+      "LDS 容量",
+      "kB/CU",
+      "64",
+      "64",
+      "按物理 CU 资源；旧手册图文冲突见下方说明。",
+      "gcn-manual@21,memory-specs"
+    ],
+    [
+      "LDS 无冲突访问峰值",
+      "byte/CU/cycle",
+      "128（32-bank 模型推算）",
+      "128",
+      "32 banks × 4 B；不与读写相加成 256。Polaris 不是本次硬件实测。",
+      "gcn-manual@22,hip-hardware"
+    ],
+    [
+      "普通 VGPR 物理容量",
+      "kB/CU",
+      "256（4 × 64）",
+      "256",
+      "GCN 图中每 SIMD 的 256×64×4 B；MI100 为独立 VGPR 池。",
+      "gcn-manual@21,memory-specs"
+    ],
+    [
+      "独立 AGPR 物理容量",
+      "kB/CU",
+      "0（无此矩阵寄存器池）",
+      "256",
+      "MI100 独立 accumulation pool。",
+      "memory-specs,pipeline-resources"
+    ],
+    [
+      "VGPR + AGPR 总容量",
+      "kB/CU",
+      "256",
+      "512",
+      "总计包含前两行，不能再相加；MI100 非统一 512 kB VGPR 池。",
+      "memory-specs,pipeline-resources"
+    ],
+    [
+      "VGPR 物理端口读 / 写峰值",
+      "byte/CU/cycle",
+      "未取得可比公开值",
+      "未取得可比公开值",
+      "FMA 操作数逻辑字节数不是寄存器 bank 物理吞吐；不据此倒推。",
+      "gcn-manual,whitepaper1@6"
+    ],
+    [
+      "MI100 L2 容量",
+      "MB/GPU",
+      "随 Polaris 芯片；此表不统一",
+      "8",
+      "共享全 GPU；不是每 CU 8 MB。",
+      "polaris-whitepaper@10,whitepaper1@4"
+    ],
+    [
+      "MI100 L2 slice 汇总峰值",
+      "byte/GPU/cycle",
+      "未取得同口径值",
+      "2,048",
+      "32 slices × 64 B/cycle；分母为 GPU。",
+      "whitepaper1@4"
+    ]
+  ],
+  "families": [
+    [
+      "普通 FP32 / FP64",
+      "继承",
+      [
+        "V_FMA_F32",
+        "V_FMA_F64"
+      ],
+      [],
+      [
+        "V_FMA_F32",
+        "V_FMA_F64"
+      ],
+      "类型支持本来就有；吞吐随架构和 SKU 而变。"
+    ],
+    [
+      "单值 FP16",
+      "旧代已存在",
+      [
+        "V_ADD_F16",
+        "V_MUL_F16"
+      ],
+      [],
+      [
+        "V_ADD_F16",
+        "V_MUL_F16"
+      ],
+      "不要把单值 FP16 支持与 packed FP16 两倍吞吐混为一谈。"
+    ],
+    [
+      "Packed FP16",
+      "Vega 阶段",
+      [],
+      [
+        "V_PK_FMA_F16",
+        "V_PK_ADD_F16"
+      ],
+      [
+        "V_PK_FMA_F16",
+        "V_PK_ADD_F16"
+      ],
+      "Vega 手册的新增列表已经列出。"
+    ],
+    [
+      "显式地址空间",
+      "Vega 阶段",
+      [],
+      [
+        "GLOBAL_LOAD_DWORD",
+        "SCRATCH_LOAD_DWORD"
+      ],
+      [
+        "GLOBAL_LOAD_DWORD",
+        "SCRATCH_LOAD_DWORD"
+      ],
+      "GLOBAL / SCRATCH 是中间阶段变化，不计作 CDNA1 首次出现。"
+    ],
+    [
+      "Matrix FP32",
+      "CDNA1 新增",
+      [],
+      [],
+      [
+        "V_MFMA_F32_16X16X4F32",
+        "V_MFMA_F32_32X32X2F32"
+      ],
+      "FP32 输入 / FP32 累加，专用矩阵管线。"
+    ],
+    [
+      "Matrix FP16",
+      "CDNA1 新增",
+      [],
+      [],
+      [
+        "V_MFMA_F32_16X16X16F16",
+        "V_MFMA_F32_32X32X8F16"
+      ],
+      "FP16 输入 / FP32 累加。"
+    ],
+    [
+      "Matrix BF16",
+      "CDNA1 新增",
+      [],
+      [],
+      [
+        "V_MFMA_F32_16X16X8BF16",
+        "V_MFMA_F32_32X32X4BF16"
+      ],
+      "BF16 输入 / FP32 累加；无后代 BF16_1K 变体。"
+    ],
+    [
+      "Matrix INT8",
+      "CDNA1 新增",
+      [],
+      [],
+      [
+        "V_MFMA_I32_16X16X16I8",
+        "V_MFMA_I32_32X32X8I8"
+      ],
+      "INT8 输入 / INT32 累加。"
+    ],
+    [
+      "AGPR 搬运",
+      "CDNA1 新增",
+      [],
+      [],
+      [
+        "V_ACCVGPR_READ",
+        "V_ACCVGPR_WRITE"
+      ],
+      "canonical 名称未带 _B32；汇编写法与工具别名以对应版本为准。"
+    ],
+    [
+      "F32 / packed F16 原子加",
+      "MI100 明确列为新增",
+      [],
+      [],
+      [
+        "GLOBAL_ATOMIC_ADD_F32",
+        "GLOBAL_ATOMIC_PK_ADD_F16",
+        "BUFFER_ATOMIC_ADD_F32",
+        "BUFFER_ATOMIC_PK_ADD_F16"
+      ],
+      "全局 / buffer 原子；不泛化成所有 FP atomic 都是本代首创。"
+    ],
+    [
+      "DOT*C / packed FMAC",
+      "MI100 明确列为新增",
+      [],
+      [],
+      [
+        "V_DOT2C_F32_F16",
+        "V_DOT4C_I32_I8",
+        "V_DOT8C_I32_I4",
+        "V_PK_FMAC_F16"
+      ],
+      "VALU 点积 / 累加形式与 MFMA 是不同路径。"
+    ],
+    [
+      "DPP / SDWA 与 lane 交换",
+      "旧代已有",
+      [
+        "DS_PERMUTE_B32",
+        "DS_BPERMUTE_B32"
+      ],
+      [],
+      [
+        "DS_PERMUTE_B32",
+        "DS_BPERMUTE_B32"
+      ],
+      "GFX8 已有；DPP / SDWA 通常是编码修饰，不是新 canonical 名称。"
+    ]
+  ]
+}
