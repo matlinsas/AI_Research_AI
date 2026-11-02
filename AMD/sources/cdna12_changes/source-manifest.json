@@ -1,0 +1,142 @@
+[
+  {
+    "key": "whitepaper1",
+    "url": "https://www.amd.com/content/dam/amd/en/documents/instinct-business-docs/white-papers/amd-cdna-white-paper.pdf",
+    "resolved_url": "https://www.amd.com/content/dam/amd/en/documents/instinct-business-docs/white-papers/amd-cdna-white-paper.pdf",
+    "path": "sources\\cdna_throughput\\whitepaper1.pdf",
+    "bytes": 3379915,
+    "sha256": "d62f13d68fe57f6878d18ee896a18342d3343481f83372fce8f87fb3eb48e959",
+    "retrieved": "2026-10-19",
+    "reused_from": "sources/cdna_throughput/source-manifest.json"
+  },
+  {
+    "key": "whitepaper2",
+    "url": "https://www.amd.com/content/dam/amd/en/documents/instinct-business-docs/white-papers/amd-cdna2-white-paper.pdf",
+    "resolved_url": "https://www.amd.com/content/dam/amd/en/documents/instinct-business-docs/white-papers/amd-cdna2-white-paper.pdf",
+    "path": "sources\\cdna_throughput\\whitepaper2.pdf",
+    "bytes": 1788074,
+    "sha256": "62125a4a3f00e653556ca98c178712496b241e5c3d8a4edadee7578944c2cc6d",
+    "retrieved": "2026-10-19",
+    "reused_from": "sources/cdna_throughput/source-manifest.json"
+  },
+  {
+    "key": "microarch1",
+    "url": "https://rocmdocs.amd.com/en/latest/reference/gpu-arch/mi100.html",
+    "resolved_url": "https://rocmdocs.amd.com/en/latest/reference/gpu-arch/mi100.html",
+    "path": "sources\\cdna_throughput\\microarch1.html",
+    "bytes": 55385,
+    "sha256": "c3e97c3dac45fdb3019c4f2b854a5d4b2fd62d3d341bca65685e4fad9b1c16e4",
+    "retrieved": "2026-10-19",
+    "reused_from": "sources/cdna_throughput/source-manifest.json"
+  },
+  {
+    "key": "microarch2",
+    "url": "https://rocmdocs.amd.com/en/latest/reference/gpu-arch/mi250.html",
+    "resolved_url": "https://rocmdocs.amd.com/en/latest/reference/gpu-arch/mi250.html",
+    "path": "sources\\cdna_throughput\\microarch2.html",
+    "bytes": 55846,
+    "sha256": "d768eb1c436cdd886ea583a9b5c5b49b3c05418cdf60b1899aeb5104aadbaec6",
+    "retrieved": "2026-10-19",
+    "reused_from": "sources/cdna_throughput/source-manifest.json"
+  },
+  {
+    "key": "memory-specs",
+    "url": "https://rocm.docs.amd.com/en/docs-7.14.1/reference/gpu-specs.html",
+    "resolved_url": "https://rocm.docs.amd.com/en/docs-7.14.1/reference/gpu-specs.html",
+    "path": "sources\\cdna_throughput\\memory-specs.html",
+    "bytes": 84261,
+    "sha256": "e543727e81968ac46733ef388ad5785f31f02de4f45127cad4bada6ad72e25b1",
+    "retrieved": "2026-10-19",
+    "reused_from": "sources/cdna_throughput/source-manifest.json"
+  },
+  {
+    "key": "matrix12",
+    "url": "https://rocm.blogs.amd.com/software-tools-optimization/matrix-cores/README.html",
+    "resolved_url": "https://rocm.blogs.amd.com/software-tools-optimization/matrix-cores/README.html",
+    "path": "sources\\cdna_throughput\\matrix12.html",
+    "bytes": 99203,
+    "sha256": "219cd69453a4eee071d9d3fb4b92d760ad5efef65a209be08842c11bff511166",
+    "retrieved": "2026-10-19",
+    "reused_from": "sources/cdna_throughput/source-manifest.json"
+  },
+  {
+    "key": "pipeline-resources",
+    "url": "https://rocm.docs.amd.com/projects/rocprofiler-compute/en/docs-10.1.0/conceptual/cdna/pipeline-descriptions.html",
+    "resolved_url": "https://rocm.docs.amd.com/projects/rocprofiler-compute/en/docs-10.1.0/conceptual/cdna/pipeline-descriptions.html",
+    "path": "sources\\cdna_throughput\\pipeline-resources.html",
+    "bytes": 55912,
+    "sha256": "be5a623947dce495b1e9eeaeb54ea1da4882dd231f7156084d709a3205c96b40",
+    "retrieved": "2026-10-19",
+    "reused_from": "sources/cdna_throughput/source-manifest.json"
+  },
+  {
+    "key": "hip-hardware",
+    "url": "https://rocmdocs.amd.com/projects/HIP/en/latest/understand/hardware_implementation.html",
+    "resolved_url": "https://rocmdocs.amd.com/projects/HIP/en/latest/understand/hardware_implementation.html",
+    "path": "sources\\cdna_throughput\\hip-hardware.html",
+    "bytes": 95605,
+    "sha256": "a98b00c03c8f3045dab37d4fd7456ac80267afd16d4744a8d1008ad13c908c5c",
+    "retrieved": "2026-10-19",
+    "reused_from": "sources/cdna_throughput/source-manifest.json"
+  },
+  {
+    "key": "isa2",
+    "url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/instinct-mi200-cdna2-instruction-set-architecture.pdf",
+    "resolved_url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/instinct-mi200-cdna2-instruction-set-architecture.pdf",
+    "path": "sources/cdna23_changes/isa2.pdf",
+    "bytes": 4724999,
+    "sha256": "6c8b6e86fddb489437765c1d4c290c223e7668576bbd2ea9c2ebb4d45e3e2212",
+    "retrieved": "2026-11-02",
+    "pages": 275,
+    "reused_from": "sources/cdna23_changes/source-manifest.json"
+  },
+  {
+    "key": "product2",
+    "url": "https://www.amd.com/en/products/accelerators/instinct/mi200/mi250x.html",
+    "resolved_url": "https://www.amd.com/en/products/accelerators/instinct/mi200/mi250x.html",
+    "path": "sources/cdna23_changes/product2.html",
+    "bytes": 185044,
+    "sha256": "52ed5abcf53c35431e61c6ee11d8bb3e3f129c6509f82377b6073043f3cc921c",
+    "retrieved": "2026-11-02",
+    "reused_from": "sources/cdna23_changes/source-manifest.json"
+  },
+  {
+    "key": "isa-xml",
+    "url": "https://gpuopen.com/download/machine-readable-isa/latest/",
+    "resolved_url": "https://gpuopen.com/download/AMD_GPU_MR_ISA_XML_2026_08_06.zip",
+    "path": "sources/cdna23_changes/isa-xml.zip",
+    "bytes": 2294639,
+    "sha256": "82404f1126761b7877595b622afa7e1f311f2f41e89a3abe9aaf8ad045c082e2",
+    "retrieved": "2026-11-02",
+    "reused_from": "sources/cdna23_changes/source-manifest.json"
+  },
+  {
+    "key": "llvm-usage",
+    "url": "https://llvm.org/docs/AMDGPUUsage.html",
+    "resolved_url": "https://llvm.org/docs/AMDGPUUsage.html",
+    "path": "sources\\cdna_changes\\llvm-usage.html",
+    "bytes": 1396281,
+    "sha256": "b9f7b2fac7736af0a96fa74a0805316caeec053385a61280ddf58bf54ea81eb6",
+    "retrieved": "2026-10-15",
+    "reused_from": "sources/cdna_changes/source-manifest.json"
+  },
+  {
+    "key": "machine-readable",
+    "url": "https://gpuopen.com/machine-readable-isa/",
+    "resolved_url": "https://gpuopen.com/machine-readable-isa/",
+    "path": "sources/cdna12_changes/machine-readable.html",
+    "bytes": 231252,
+    "sha256": "cbbd08713129a256f305c659488f75dfa1520c299dba58d6c5cd7669a7c638b6",
+    "retrieved": "2026-11-02"
+  },
+  {
+    "key": "isa1",
+    "url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/instinct-mi100-cdna1-shader-instruction-set-architecture.pdf",
+    "resolved_url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/instinct-mi100-cdna1-shader-instruction-set-architecture.pdf",
+    "path": "sources/cdna12_changes/isa1.pdf",
+    "bytes": 5035144,
+    "sha256": "88faff920858fd36f0d902aeca34a73215a078f5977080b67489e1284dd36ef4",
+    "retrieved": "2026-11-02",
+    "pages": 283
+  }
+]

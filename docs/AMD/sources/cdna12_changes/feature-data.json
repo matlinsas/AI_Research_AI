@@ -1,0 +1,459 @@
+{
+  "date": "2026-11-02",
+  "capacity_convention": "1 kB = 1024 B",
+  "features": [
+    {
+      "category": "执行与数值",
+      "name": "目标与执行粒度",
+      "cdna1": "gfx908；MI100；Wave64、4×SIMD16 / CU",
+      "cdna2": "gfx90a；MI200；仍为 Wave64、4×SIMD16 / CU",
+      "meaning": "本次没有 WGP / Wave32 转型；编译目标与编码需更新。",
+      "sources": [
+        "microarch1",
+        "microarch2",
+        "llvm-usage"
+      ]
+    },
+    {
+      "category": "执行与数值",
+      "name": "Vector FP64",
+      "cdna1": "64 FLOPs/CU/cycle",
+      "cdna2": "128 FLOPs/CU/cycle",
+      "meaning": "每 CU 2×；普通非 packed FP32 每 CU 仍为 128。",
+      "sources": [
+        "whitepaper2",
+        "microarch1",
+        "microarch2"
+      ]
+    },
+    {
+      "category": "执行与数值",
+      "name": "原生 FP64 Matrix Core",
+      "cdna1": "无 FP64 MFMA",
+      "cdna2": "新增 16×16×4 与 4×4×4 FP64 MFMA；256 FLOPs/CU/cycle",
+      "meaning": "新矩阵路径是本代 HPC 的重要增量。白皮书 8.3× 比较的是整卡 Matrix FP64 对前代 Vector FP64，不能说成同一路径每 CU 8.3×。",
+      "sources": [
+        "whitepaper2",
+        "isa2",
+        "isa-xml"
+      ]
+    },
+    {
+      "category": "执行与数值",
+      "name": "BF16 Matrix Core",
+      "cdna1": "512 FLOPs/CU/cycle，低于 FP16",
+      "cdna2": "新增 5 条 BF16_1K 名称；1,024 FLOPs/CU/cycle",
+      "meaning": "BF16 吞吐提升 2×，达到同代 FP16 水平；BF16 本身在 CDNA 1 已支持。",
+      "sources": [
+        "whitepaper2",
+        "matrix12",
+        "isa-xml"
+      ]
+    },
+    {
+      "category": "执行与数值",
+      "name": "Packed FP32",
+      "cdna1": "普通 FP32：128 FLOPs/CU/cycle",
+      "cdna2": "新增 packed ADD/MUL/FMA 及 MOV；packed FMA 可达 256",
+      "meaning": "相邻、成对且对齐的寄存器操作数有要求。普通 FMA 不会自动变成 packed；峰值不能再机械乘以其他模式。",
+      "sources": [
+        "whitepaper2",
+        "isa2"
+      ]
+    },
+    {
+      "category": "执行与数值",
+      "name": "FP16 / FP32 矩阵与 INT8",
+      "cdna1": "FP16：1,024；Matrix FP32：256；INT8：1,024",
+      "cdna2": "这些每 CU 峰值保持",
+      "meaning": "整卡峰值增长主要来自更多 CU 与更高频率，不是各数据类型都在每 CU 翻倍。",
+      "sources": [
+        "whitepaper2",
+        "matrix12"
+      ]
+    },
+    {
+      "category": "执行与数值",
+      "name": "FP64 原子与 vector FMAC",
+      "cdna1": "无本次新增的 FP64 memory atomic / FMAC 组合",
+      "cdna2": "新增 buffer/flat/global FP64 ADD/MIN/MAX、LDS ADD 及 V_FMAC_F64",
+      "meaning": "白皮书同时描述 LDS 与 L2 FP64 原子改进；不把原子带宽等同 FMA 浮点吞吐。",
+      "sources": [
+        "isa2",
+        "isa-xml",
+        "whitepaper2"
+      ]
+    },
+    {
+      "category": "执行与数值",
+      "name": "64-bit DPP",
+      "cdna1": "旧代部分 FP64 指令没有 DPP 形式",
+      "cdna2": "ISA 明确支持 64-bit data DPP；XML 中 11 个同名 FP64 条目增加 DPP 形式",
+      "meaning": "名称未新增也能有功能扩展；是否支持某一操作仍需逐条查看编码选项。",
+      "sources": [
+        "isa2",
+        "isa-xml"
+      ]
+    },
+    {
+      "category": "执行与数值",
+      "name": "后续 AI 特性边界",
+      "cdna1": "已有 FP16/BF16/INT8 MFMA",
+      "cdna2": "两代均无原生 FP8、XF32/TF32、SMFMAC 或 MX FP4/FP6 指令族",
+      "meaning": "这些不能从后续 CDNA 3/4 回填到本代；软件量化或模拟不等同原生矩阵硬件。",
+      "sources": [
+        "isa1",
+        "isa2",
+        "isa-xml"
+      ]
+    },
+    {
+      "category": "寄存器与 ABI",
+      "name": "VGPR / AGPR 物理组织",
+      "cdna1": "固定 256 kB VGPR + 256 kB AGPR / CU",
+      "cdna2": "合并为 512 kB / CU 的共享物理池",
+      "meaning": "总物理容量保持，分配弹性提高；不是每个线程获得 512 kB，也不是两个独立 512 kB 池。",
+      "sources": [
+        "pipeline-resources",
+        "memory-specs",
+        "isa2"
+      ]
+    },
+    {
+      "category": "寄存器与 ABI",
+      "name": "访存直接写入 AGPR",
+      "cdna1": "旧代访存不能用本代的 ACC 目标模式直接回写 AGPR",
+      "cdna2": "ISA 明确允许 memory operations 直接返回 accumulation VGPRs",
+      "meaning": "减少某些矩阵数据准备步骤；需看访存编码 ACC 字段及对齐要求。",
+      "sources": [
+        "isa2",
+        "isa1"
+      ]
+    },
+    {
+      "category": "寄存器与 ABI",
+      "name": "AGPR 内部数据搬运",
+      "cdna1": "已有 V_ACCVGPR_READ / WRITE_B32",
+      "cdna2": "新增 V_ACCVGPR_MOV_B32",
+      "meaning": "增加 AGPR 到 AGPR 的移动；不是 AGPR 或矩阵累加寄存器首次出现。",
+      "sources": [
+        "isa-xml",
+        "isa1",
+        "isa2"
+      ]
+    },
+    {
+      "category": "寄存器与 ABI",
+      "name": "Workgroup 内线程索引",
+      "cdna1": "按旧 ABI 将 X/Y/Z 分别初始化到 VGPR",
+      "cdna2": "X/Y/Z 合并到 VGPR0：{2’b00, Z, Y, X}",
+      "meaning": "手写汇编与入口代码需按 gfx90a ABI 取位；不可沿用旧寄存器位置。",
+      "sources": [
+        "isa1",
+        "isa2"
+      ]
+    },
+    {
+      "category": "存储与缓存",
+      "name": "LDS 容量与读带宽",
+      "cdna1": "64 kB / CU；32 banks；128 byte/CU/cycle",
+      "cdna2": "容量、bank 数与无冲突读带宽保持",
+      "meaning": "FP64 原子路径改进不代表所有 LDS 普通读写带宽翻倍。",
+      "sources": [
+        "memory-specs",
+        "hip-hardware",
+        "whitepaper2"
+      ]
+    },
+    {
+      "category": "存储与缓存",
+      "name": "L1 vector data cache",
+      "cdna1": "16 kB / CU",
+      "cdna2": "16 kB / CU",
+      "meaning": "L1 容量并未在本代翻倍；32 kB / CU 是后续 CDNA 3 的变化。",
+      "sources": [
+        "memory-specs"
+      ]
+    },
+    {
+      "category": "存储与缓存",
+      "name": "指令 / 标量 cache 共享",
+      "cdna1": "Instruction 32 kB、scalar 16 kB，按三个 CU 共享",
+      "cdna2": "Instruction 32 kB、scalar 16 kB，按两个 CU 共享",
+      "meaning": "组容量相同但共享粒度改变，不能直接将组容量写成每 CU 独占容量。",
+      "sources": [
+        "memory-specs"
+      ]
+    },
+    {
+      "category": "存储与缓存",
+      "name": "L2 容量与读吞吐",
+      "cdna1": "8 MB / GPU；32 slices × 64 B/cycle",
+      "cdna2": "8 MB / GCD；32 slices × 128 B/cycle；双 GCD 合计 16 MB",
+      "meaning": "每 GCD 的读带宽翻倍；整 OAM 还增加 GCD 数。此处带宽分母是 GCD，不是 CU。",
+      "sources": [
+        "whitepaper1",
+        "whitepaper2"
+      ]
+    },
+    {
+      "category": "存储与缓存",
+      "name": "L2 cache 管理指令",
+      "cdna1": "本次 CDNA 1 XML 未列出 BUFFER_INVL2 / WBL2",
+      "cdna2": "本次 CDNA 2 XML 列出两条名称",
+      "meaning": "名称列表不能独自证明所有 cache 管理概念都是本代首次出现；语义与等待要求以 ISA 为准。",
+      "sources": [
+        "isa-xml",
+        "isa1",
+        "isa2"
+      ]
+    },
+    {
+      "category": "精简与编码",
+      "name": "GDS、GWS 与 SRC2 DS",
+      "cdna1": "旧 ISA 环境包含 GDS / SRC2 DS 路径",
+      "cdna2": "ISA changes 明确移除 GDS 与 SRC2 DS，保留 GWS",
+      "meaning": "LDS 与 GDS 不同；保留 GWS 也不等于仍有通用 GDS。XML 名称差分不足以覆盖控制位 / 路径变化。",
+      "sources": [
+        "isa2",
+        "isa1"
+      ]
+    },
+    {
+      "category": "精简与编码",
+      "name": "图像、插值与导出清单",
+      "cdna1": "包含较多 IMAGE/GATHER、V_INTERP 与 EXP 条目",
+      "cdna2": "多数相关旧名不再列出，但保留 ISA 明确列出的部分 IMAGE 操作",
+      "meaning": "计算架构进一步精简图形路径；不能宣称所有 IMAGE 指令都已删除。",
+      "sources": [
+        "isa2",
+        "isa-xml"
+      ]
+    },
+    {
+      "category": "精简与编码",
+      "name": "同名编码变化",
+      "cdna1": "V_MUL_LEGACY_F32 有 VOP2、DPP、SDWA、旧 VOP3 等形式",
+      "cdna2": "XML 仅列 VOP3 opcode 673；另有 11 个 FP64 同名条目增加 DPP",
+      "meaning": "共 12 个同名条目检出编码列表变化。这不是全部指令语义差异扫描，也不能靠名称断言二进制兼容。",
+      "sources": [
+        "isa-xml",
+        "isa1",
+        "isa2"
+      ]
+    },
+    {
+      "category": "系统与平台",
+      "name": "芯粒、制程与逻辑设备",
+      "cdna1": "MI100：单个 N7 GPU，120 启用 CU",
+      "cdna2": "MI250X：两个 N6 GCD，各 110 CU；ROCm 通常各枚举为独立 GPU",
+      "meaning": "220 CU 是整 OAM 合计；MI210 为单 GCD，不能把所有 CDNA 2 都称为双 GCD。",
+      "sources": [
+        "whitepaper1",
+        "whitepaper2",
+        "product2"
+      ]
+    },
+    {
+      "category": "系统与平台",
+      "name": "HBM 容量与带宽",
+      "cdna1": "MI100：32 GB HBM2，约 1.23 TB/s",
+      "cdna2": "MI250X：128 GB HBM2E / OAM，3.2 TB/s；每 GCD 64 GB / 1.6 TB/s",
+      "meaning": "整 OAM 容量 4×、带宽约 2.6×。同一 OAM 的两份 HBM 不等同每个逻辑 GPU 均本地拥有 128 GB。",
+      "sources": [
+        "whitepaper1",
+        "whitepaper2",
+        "product2"
+      ]
+    },
+    {
+      "category": "系统与平台",
+      "name": "Infinity Fabric 与 host coherence",
+      "cdna1": "MI100 使用 PCIe host + 三条 GPU 间 IF 链路",
+      "cdna2": "扩展 in-package / inter-package IF；特定优化 EPYC 平台可使用 coherent host IF",
+      "meaning": "CPU-GPU cache coherence 依赖特定平台实现；不能泛化成所有 MI200 PCIe 服务器均自动具备该模式。",
+      "sources": [
+        "whitepaper1",
+        "whitepaper2"
+      ]
+    }
+  ],
+  "per_cu": [
+    {
+      "name": "Vector FP64 FMA",
+      "unit": "FLOPs/CU/cycle",
+      "cdna1": "64",
+      "cdna2": "128",
+      "change": "2×",
+      "sources": [
+        "whitepaper2"
+      ]
+    },
+    {
+      "name": "Matrix FP64",
+      "unit": "FLOPs/CU/cycle",
+      "cdna1": "无原生 MFMA",
+      "cdna2": "256",
+      "change": "新增",
+      "sources": [
+        "whitepaper2",
+        "isa2"
+      ]
+    },
+    {
+      "name": "Vector FP32：普通非 packed",
+      "unit": "FLOPs/CU/cycle",
+      "cdna1": "128",
+      "cdna2": "128",
+      "change": "保持",
+      "sources": [
+        "whitepaper2"
+      ]
+    },
+    {
+      "name": "Vector FP32：packed FMA",
+      "unit": "FLOPs/CU/cycle",
+      "cdna1": "无该 packed 路径",
+      "cdna2": "256",
+      "change": "新增；有寄存器布局要求",
+      "sources": [
+        "whitepaper2"
+      ]
+    },
+    {
+      "name": "Matrix FP32",
+      "unit": "FLOPs/CU/cycle",
+      "cdna1": "256",
+      "cdna2": "256",
+      "change": "保持",
+      "sources": [
+        "whitepaper2"
+      ]
+    },
+    {
+      "name": "Matrix FP16 dense",
+      "unit": "FLOPs/CU/cycle",
+      "cdna1": "1,024",
+      "cdna2": "1,024",
+      "change": "保持",
+      "sources": [
+        "whitepaper2"
+      ]
+    },
+    {
+      "name": "Matrix BF16 dense",
+      "unit": "FLOPs/CU/cycle",
+      "cdna1": "512",
+      "cdna2": "1,024",
+      "change": "2×",
+      "sources": [
+        "whitepaper2"
+      ]
+    },
+    {
+      "name": "Matrix INT8 dense",
+      "unit": "IOPs/CU/cycle",
+      "cdna1": "1,024",
+      "cdna2": "1,024",
+      "change": "保持",
+      "sources": [
+        "whitepaper2"
+      ]
+    },
+    {
+      "name": "LDS 容量",
+      "unit": "kB/CU",
+      "cdna1": "64",
+      "cdna2": "64",
+      "change": "保持",
+      "sources": [
+        "memory-specs"
+      ]
+    },
+    {
+      "name": "LDS 无冲突峰值读带宽",
+      "unit": "byte/CU/cycle",
+      "cdna1": "128",
+      "cdna2": "128",
+      "change": "保持",
+      "sources": [
+        "hip-hardware"
+      ]
+    },
+    {
+      "name": "普通向量可用 VGPR 物理池",
+      "unit": "kB/CU",
+      "cdna1": "256",
+      "cdna2": "512（与 AGPR 共享）",
+      "change": "物理预算变为灵活共享",
+      "sources": [
+        "pipeline-resources",
+        "memory-specs"
+      ]
+    },
+    {
+      "name": "含 AGPR 的向量寄存器总物理容量",
+      "unit": "kB/CU",
+      "cdna1": "512",
+      "cdna2": "512",
+      "change": "包含上一行，不能相加",
+      "sources": [
+        "pipeline-resources",
+        "memory-specs"
+      ]
+    },
+    {
+      "name": "VGPR 物理读 / 写峰值",
+      "unit": "byte/CU/cycle",
+      "cdna1": "未公开可比值",
+      "cdna2": "未公开可比值",
+      "change": "不由 FMA 逻辑流量倒推",
+      "sources": [
+        "whitepaper1",
+        "whitepaper2"
+      ]
+    },
+    {
+      "name": "L1 vector cache",
+      "unit": "kB/CU",
+      "cdna1": "16",
+      "cdna2": "16",
+      "change": "保持",
+      "sources": [
+        "memory-specs"
+      ]
+    },
+    {
+      "name": "L1 instruction cache",
+      "unit": "kB/共享组",
+      "cdna1": "32 / 三 CU",
+      "cdna2": "32 / 两 CU",
+      "change": "共享粒度改变",
+      "sources": [
+        "memory-specs"
+      ]
+    },
+    {
+      "name": "L2 容量",
+      "unit": "MB/GCD",
+      "cdna1": "8",
+      "cdna2": "8",
+      "change": "双 GCD OAM 合计为 16 MB",
+      "sources": [
+        "whitepaper1",
+        "whitepaper2"
+      ]
+    },
+    {
+      "name": "L2 slice 汇总读带宽",
+      "unit": "byte/GCD/cycle",
+      "cdna1": "2,048",
+      "cdna2": "4,096",
+      "change": "32 slices × 64 / 128 B",
+      "sources": [
+        "whitepaper1",
+        "whitepaper2"
+      ]
+    }
+  ]
+}
