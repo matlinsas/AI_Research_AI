@@ -1,0 +1,175 @@
+[
+  {
+    "key": "whitepaper4",
+    "url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/white-papers/amd-cdna-4-architecture-whitepaper.pdf",
+    "resolved_url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/white-papers/amd-cdna-4-architecture-whitepaper.pdf",
+    "path": "sources\\cdna_changes\\whitepaper4.pdf",
+    "bytes": 2703210,
+    "sha256": "7ebf89edb9b82198b9edea7bb37eb7fe7c998842257eb21ef7a459a87774a4b2",
+    "retrieved": "2026-10-15",
+    "pages": 21,
+    "reused_from": "sources/cdna_changes/source-manifest.json"
+  },
+  {
+    "key": "isa4",
+    "url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/amd-instinct-cdna4-instruction-set-architecture.pdf",
+    "resolved_url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/amd-instinct-cdna4-instruction-set-architecture.pdf",
+    "path": "sources\\cdna_changes\\isa4.pdf",
+    "bytes": 4596505,
+    "sha256": "c459fb8db759006da52df57b5d7b913686ed7a68b52dc76e3f557f553a5d667f",
+    "retrieved": "2026-10-15",
+    "pages": 608,
+    "reused_from": "sources/cdna_changes/source-manifest.json"
+  },
+  {
+    "key": "gemm4",
+    "url": "https://rocm.blogs.amd.com/software-tools-optimization/cdna4-gemm-kernels/README.html",
+    "resolved_url": "https://rocm.blogs.amd.com/software-tools-optimization/cdna4-gemm-kernels/README.html",
+    "path": "sources\\cdna_changes\\gemm4.html",
+    "bytes": 178880,
+    "sha256": "3995e7d3c345b2007a8722690121b818bc2f9b8b2a55547305ca9a5b4770734f",
+    "retrieved": "2026-10-15",
+    "reused_from": "sources/cdna_changes/source-manifest.json"
+  },
+  {
+    "key": "machine-readable",
+    "url": "https://gpuopen.com/machine-readable-isa/",
+    "resolved_url": "https://gpuopen.com/machine-readable-isa/",
+    "path": "sources\\cdna_changes\\machine-readable.html",
+    "bytes": 230822,
+    "sha256": "be93350b9d136d0ebd4da94ca96a9234d065a382ee42595be68058fddafdbbc3",
+    "retrieved": "2026-10-15",
+    "zip_links": [],
+    "reused_from": "sources/cdna_changes/source-manifest.json"
+  },
+  {
+    "key": "architecture",
+    "url": "https://www.amd.com/en/technologies/cdna.html",
+    "resolved_url": "https://www.amd.com/en/technologies/cdna.html",
+    "path": "sources\\cdna_changes\\architecture.html",
+    "bytes": 240637,
+    "sha256": "6fc975a15993c6456e428d0db444fb56fdd58d6c7e3a0038b2e03da4d7f07429",
+    "retrieved": "2026-10-15",
+    "reused_from": "sources/cdna_changes/source-manifest.json"
+  },
+  {
+    "key": "product4",
+    "url": "https://www.amd.com/en/products/accelerators/instinct/mi350/mi355x.html",
+    "resolved_url": "https://www.amd.com/en/products/accelerators/instinct/mi350/mi355x.html",
+    "path": "sources\\cdna_changes\\product4.html",
+    "bytes": 239283,
+    "sha256": "5a775d2bd95dfff0656e7f12d0273236441a8a21b582a92d0d818738629dc296",
+    "retrieved": "2026-10-15",
+    "reused_from": "sources/cdna_changes/source-manifest.json"
+  },
+  {
+    "key": "llvm-usage",
+    "url": "https://llvm.org/docs/AMDGPUUsage.html",
+    "resolved_url": "https://llvm.org/docs/AMDGPUUsage.html",
+    "path": "sources\\cdna_changes\\llvm-usage.html",
+    "bytes": 1396281,
+    "sha256": "b9f7b2fac7736af0a96fa74a0805316caeec053385a61280ddf58bf54ea81eb6",
+    "retrieved": "2026-10-15",
+    "reused_from": "sources/cdna_changes/source-manifest.json"
+  },
+  {
+    "key": "whitepaper3",
+    "url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/white-papers/amd-cdna-3-white-paper.pdf",
+    "resolved_url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/white-papers/amd-cdna-3-white-paper.pdf",
+    "path": "sources\\cdna_throughput\\whitepaper3.pdf",
+    "bytes": 8096236,
+    "sha256": "a0811d04f101f9127bd183d6e228f462b6fd988b0e0e6d263a25e4bed712f593",
+    "retrieved": "2026-10-19",
+    "reused_from": "sources/cdna_throughput/source-manifest.json"
+  },
+  {
+    "key": "matrix34",
+    "url": "https://rocm.blogs.amd.com/software-tools-optimization/matrix-cores-cdna/README.html",
+    "resolved_url": "https://rocm.blogs.amd.com/software-tools-optimization/matrix-cores-cdna/README.html",
+    "path": "sources\\cdna_throughput\\matrix34.html",
+    "bytes": 177428,
+    "sha256": "6e43bbb74fae19479fa9adbdf5666f534368bed949f7a515df5d45f3afb25f84",
+    "retrieved": "2026-10-19",
+    "reused_from": "sources/cdna_throughput/source-manifest.json"
+  },
+  {
+    "key": "microarch3",
+    "url": "https://rocmdocs.amd.com/en/latest/reference/gpu-arch/mi300.html",
+    "resolved_url": "https://rocmdocs.amd.com/en/latest/reference/gpu-arch/mi300.html",
+    "path": "sources\\cdna_throughput\\microarch3.html",
+    "bytes": 55169,
+    "sha256": "52b1335a48f3a21a676c7329630628233ac4a4931922098f4d4a91c378c96bfc",
+    "retrieved": "2026-10-19",
+    "reused_from": "sources/cdna_throughput/source-manifest.json"
+  },
+  {
+    "key": "microarch4",
+    "url": "https://rocmdocs.amd.com/en/latest/reference/gpu-arch/mi350.html",
+    "resolved_url": "https://rocmdocs.amd.com/en/latest/reference/gpu-arch/mi350.html",
+    "path": "sources\\cdna_throughput\\microarch4.html",
+    "bytes": 61015,
+    "sha256": "5775c12f2ef2476e687cdaeaedac532493a2fe9ad008b974f0f55466afd84062",
+    "retrieved": "2026-10-19",
+    "reused_from": "sources/cdna_throughput/source-manifest.json"
+  },
+  {
+    "key": "memory-specs",
+    "url": "https://rocm.docs.amd.com/en/docs-7.14.1/reference/gpu-specs.html",
+    "resolved_url": "https://rocm.docs.amd.com/en/docs-7.14.1/reference/gpu-specs.html",
+    "path": "sources\\cdna_throughput\\memory-specs.html",
+    "bytes": 84261,
+    "sha256": "e543727e81968ac46733ef388ad5785f31f02de4f45127cad4bada6ad72e25b1",
+    "retrieved": "2026-10-19",
+    "reused_from": "sources/cdna_throughput/source-manifest.json"
+  },
+  {
+    "key": "product325",
+    "url": "https://www.amd.com/en/products/accelerators/instinct/mi300/mi325x.html",
+    "resolved_url": "https://www.amd.com/en/products/accelerators/instinct/mi300/mi325x.html",
+    "path": "sources/cdna34_changes/product325.html",
+    "bytes": 247256,
+    "sha256": "1a95b58880ab10d27e5c5209c52b85d98c10c6c9670c3c1a068f1b97b6c1d145",
+    "retrieved": "2026-10-19"
+  },
+  {
+    "key": "product3",
+    "url": "https://www.amd.com/en/products/accelerators/instinct/mi300/mi300x.html",
+    "resolved_url": "https://www.amd.com/en/products/accelerators/instinct/mi300/mi300x.html",
+    "path": "sources/cdna34_changes/product3.html",
+    "bytes": 227047,
+    "sha256": "d87c810695836e11a5fd1a33efd18c5bde4503569870a5af4a2ef8195d3cb586",
+    "retrieved": "2026-10-19"
+  },
+  {
+    "key": "isa-xml",
+    "url": "https://gpuopen.com/download/machine-readable-isa/latest/",
+    "resolved_url": "https://gpuopen.com/download/AMD_GPU_MR_ISA_XML_2026_08_06.zip",
+    "path": "sources/cdna34_changes/isa-xml.zip",
+    "bytes": 2294639,
+    "sha256": "82404f1126761b7877595b622afa7e1f311f2f41e89a3abe9aaf8ad045c082e2",
+    "retrieved": "2026-10-19",
+    "extracted": [
+      "amdgpu_isa_cdna3.xml",
+      "amdgpu_isa_cdna4.xml"
+    ]
+  },
+  {
+    "key": "isa3",
+    "url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/amd-instinct-mi300-cdna3-instruction-set-architecture.pdf",
+    "resolved_url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/amd-instinct-mi300-cdna3-instruction-set-architecture.pdf",
+    "path": "sources/cdna34_changes/isa3.pdf",
+    "bytes": 4440087,
+    "sha256": "0cec4237cd93ce7dd76ee8502771429eb2308ab47dfa389f5bcc34f5903a6e2a",
+    "retrieved": "2026-10-19",
+    "pages": 561
+  },
+  {
+    "key": "precision",
+    "url": "https://rocmdocs.amd.com/en/develop/reference/precision-support.html",
+    "resolved_url": "https://rocmdocs.amd.com/en/develop/reference/precision-support.html",
+    "path": "sources/cdna34_changes/precision.html",
+    "bytes": 121965,
+    "sha256": "ff4e1c02837f053a7a7536311336afd00a0d7a77a3e504301b65027a946fc7b8",
+    "retrieved": "2026-10-19"
+  }
+]

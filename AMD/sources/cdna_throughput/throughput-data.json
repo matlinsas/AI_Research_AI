@@ -1,0 +1,671 @@
+{
+  "as_of": "2026-10-19",
+  "scope": "Theoretical dense compute peak, local-memory capacity and bandwidth per hardware unit; CDNA1-4 per CU; CDNA5 per WGP of MI455X. No hypothetical division of WGP into two CUs.",
+  "counting": {
+    "FMA": "2 FLOPs per scalar multiply-add",
+    "INT8 MAC": "2 integer operations, not floating-point operations",
+    "EX2": "one scalar result, not two FLOPs; EX2 entries are inferred architectural estimates",
+    "kB": "1024 bytes, following the requested convention. Capacity rows also store exact byte values.",
+    "LDS bandwidth": "Peak read payload, not simultaneous read + write sum. CDNA5 requires different physical partitions.",
+    "VGPR bandwidth": "Physical read/write bandwidth not established from consulted public primary sources; null with basis=not-public is unknown, not zero."
+  },
+  "columns": [
+    {
+      "arch": "CDNA 1",
+      "gpu": "MI100",
+      "unit": "CU",
+      "target": "gfx908"
+    },
+    {
+      "arch": "CDNA 2",
+      "gpu": "MI250X",
+      "unit": "CU",
+      "target": "gfx90a"
+    },
+    {
+      "arch": "CDNA 3",
+      "gpu": "MI300X",
+      "unit": "CU",
+      "target": "gfx942"
+    },
+    {
+      "arch": "CDNA 4",
+      "gpu": "MI355X",
+      "unit": "CU",
+      "target": "gfx950"
+    },
+    {
+      "arch": "CDNA 5",
+      "gpu": "MI455X",
+      "unit": "WGP",
+      "target": "gfx1250"
+    }
+  ],
+  "rows": [
+    {
+      "key": "vector_fp32",
+      "category": "vector",
+      "name": "Vector FP32 FMA：可达峰值",
+      "unit": "FLOPs",
+      "v": [
+        128,
+        256,
+        256,
+        256,
+        512
+      ],
+      "note": "CDNA 2 的 256 依赖 packed FP32（普通非 packed 为 128）；CDNA 3/4 的 256 按公开可达 vector 峰值，含 co-issue 能力；CDNA 5 的 512 包含 packed / dual-issue 的可达吞吐。不同模式不能相乘叠加。",
+      "sources": [
+        "microarch1",
+        "microarch2",
+        "hotchips3",
+        "whitepaper4",
+        "brochure5"
+      ],
+      "basis": [
+        "official",
+        "official",
+        "official",
+        "official",
+        "normalized"
+      ]
+    },
+    {
+      "key": "vector_fp16",
+      "category": "vector",
+      "name": "Vector FP16 FMA：packed 峰值",
+      "unit": "FLOPs",
+      "v": [
+        256,
+        256,
+        256,
+        256,
+        512
+      ],
+      "note": "FP16 按 packed half 运算的可达峰值。没有把 Matrix FP16 峰值填入 Vector FP16；CDNA 5 按 MI455X 规格归一化。",
+      "sources": [
+        "whitepaper1",
+        "whitepaper2",
+        "whitepaper4",
+        "brochure5"
+      ],
+      "basis": [
+        "derived",
+        "derived",
+        "official",
+        "official",
+        "normalized"
+      ]
+    },
+    {
+      "key": "ex2_fp32",
+      "category": "sfu",
+      "name": "FP32 EX2：V_EXP_F32",
+      "unit": "results",
+      "v": [
+        16,
+        16,
+        16,
+        32,
+        64
+      ],
+      "note": "这些值是架构吞吐推导，均标 †。CDNA 1：4 SIMD × 4 SFU；CDNA 2/3：按相应 LLVM quarter-rate 模型估算；CDNA 4 白皮书为前代 2×；CDNA 5 的官方调度示例为 Wave32 的 EXP 占用 2 cycles，4 SIMD × 32 / 2 = 64。不是依赖链延迟实测。",
+      "sources": [
+        "whitepaper1",
+        "llvm-schedule",
+        "llvm-processors",
+        "whitepaper4",
+        "whitepaper5",
+        "attention5",
+        "llvm-vop1"
+      ],
+      "basis": [
+        "inferred",
+        "inferred",
+        "inferred",
+        "inferred",
+        "inferred"
+      ]
+    },
+    {
+      "key": "matrix_tf32",
+      "category": "matrix",
+      "name": "Matrix TF32：原生矩阵路径",
+      "unit": "FLOPs",
+      "v": [
+        null,
+        null,
+        1024,
+        "软件模拟",
+        "无原生指令列出"
+      ],
+      "note": "CDNA 3 的 XF32 / TF32 MFMA 为原生路径；CDNA 4 已移除原生 TF32、使用 BF16 模拟；CDNA 5 公开 ISA 无相应 TF32 / XF32 WMMA，因此不杜撰固定原生吞吐。软件模拟性能依算法与精度要求。",
+      "sources": [
+        "microarch2",
+        "microarch3",
+        "whitepaper4",
+        "isa5"
+      ],
+      "basis": [
+        "unsupported",
+        "unsupported",
+        "official",
+        "emulated",
+        "not-listed"
+      ]
+    },
+    {
+      "key": "matrix_fp32",
+      "category": "matrix",
+      "name": "Matrix FP32",
+      "unit": "FLOPs",
+      "v": [
+        256,
+        256,
+        256,
+        256,
+        512
+      ],
+      "note": "CDNA 1–4 为 MFMA FP32。CDNA 5 为 MI455X 的 Matrix FP32 公开规格归一化，不能仅凭与 Vector FP32 相同就推断额外独立吞吐。",
+      "sources": [
+        "matrix12",
+        "microarch3",
+        "whitepaper4",
+        "brochure5"
+      ],
+      "basis": [
+        "official",
+        "official",
+        "official",
+        "official",
+        "normalized"
+      ]
+    },
+    {
+      "key": "matrix_fp16",
+      "category": "matrix",
+      "name": "Matrix FP16 → FP32",
+      "unit": "FLOPs",
+      "v": [
+        1024,
+        1024,
+        2048,
+        4096,
+        8192
+      ],
+      "note": "输入 FP16、FP32 累加，dense 峰值；CDNA 5 使用其 FP16 matrix 规格。",
+      "sources": [
+        "matrix12",
+        "microarch3",
+        "whitepaper4",
+        "brochure5"
+      ],
+      "basis": [
+        "official",
+        "official",
+        "official",
+        "official",
+        "normalized"
+      ]
+    },
+    {
+      "key": "matrix_bf16",
+      "category": "matrix",
+      "name": "Matrix BF16 → FP32",
+      "unit": "FLOPs",
+      "v": [
+        512,
+        1024,
+        2048,
+        4096,
+        8192
+      ],
+      "note": "CDNA 1 的 BF16 只有同代 FP16 的一半吞吐，CDNA 2 起与 FP16 同速。",
+      "sources": [
+        "matrix12",
+        "microarch3",
+        "whitepaper4",
+        "brochure5"
+      ],
+      "basis": [
+        "official",
+        "official",
+        "official",
+        "official",
+        "normalized"
+      ]
+    },
+    {
+      "key": "matrix_int8",
+      "category": "matrix",
+      "name": "Matrix INT8 → INT32",
+      "unit": "IOPs",
+      "v": [
+        1024,
+        1024,
+        4096,
+        8192,
+        8192
+      ],
+      "note": "整数乘和加各计 1 IOP，INT8 MAC 计 2 IOP；本行不是浮点 FLOPs。MI455X INT8 规格归一化后与 CDNA 4 持平，不能套用低精度“最高 4×”。",
+      "sources": [
+        "matrix12",
+        "microarch3",
+        "whitepaper4",
+        "brochure5"
+      ],
+      "basis": [
+        "official",
+        "official",
+        "official",
+        "official",
+        "normalized"
+      ]
+    },
+    {
+      "key": "matrix_fp8",
+      "category": "matrix",
+      "name": "Matrix FP8 → FP32",
+      "unit": "FLOPs",
+      "v": [
+        null,
+        null,
+        4096,
+        8192,
+        32768
+      ],
+      "note": "CDNA 3 为该代 FP8 / BF8；CDNA 4/5 为 OCP FP8。不同格式的特殊值和 exponent bias 需另外核对。均为 dense。",
+      "sources": [
+        "microarch3",
+        "whitepaper4",
+        "brochure5"
+      ],
+      "basis": [
+        "unsupported",
+        "unsupported",
+        "official",
+        "official",
+        "normalized"
+      ]
+    },
+    {
+      "key": "matrix_mxfp8",
+      "category": "matrix",
+      "name": "Matrix MXFP8 → FP32",
+      "unit": "FLOPs",
+      "v": [
+        null,
+        null,
+        null,
+        8192,
+        32768
+      ],
+      "note": "增加 block scale 的 microscaling FP8；CDNA 4 的 f8f6f4 指令含 FP8 输入时采用较低档吞吐。不要把普通 FP8 与 MXFP8 混成同一种数据布局。",
+      "sources": [
+        "matrix34",
+        "isa4",
+        "brochure5"
+      ],
+      "basis": [
+        "unsupported",
+        "unsupported",
+        "unsupported",
+        "derived",
+        "normalized"
+      ]
+    },
+    {
+      "key": "matrix_fp6",
+      "category": "matrix",
+      "name": "Matrix FP6 / MXFP6 → FP32",
+      "unit": "FLOPs",
+      "v": [
+        null,
+        null,
+        null,
+        16384,
+        32768
+      ],
+      "note": "使用 FP6×FP6 或相应 MXFP6 路径。CDNA 4 白皮书表 1 印为 16834，与指令周期和整卡峰值不一致；本表按 MFMA 周期复算为 16384，见下方计算。",
+      "sources": [
+        "matrix34",
+        "isa4",
+        "whitepaper4",
+        "brochure5"
+      ],
+      "basis": [
+        "unsupported",
+        "unsupported",
+        "unsupported",
+        "derived",
+        "normalized"
+      ]
+    },
+    {
+      "key": "matrix_fp4",
+      "category": "matrix",
+      "name": "Matrix FP4 / MXFP4 → FP32",
+      "unit": "FLOPs",
+      "v": [
+        null,
+        null,
+        null,
+        16384,
+        65536
+      ],
+      "note": "FP4×FP4 / MXFP4 的可达峰值。混合 FP4 与 FP6 / FP8 的组合不一定保持 FP4×FP4 峰值；fractional scale 的精度语义另外区分。",
+      "sources": [
+        "matrix34",
+        "isa4",
+        "brochure5"
+      ],
+      "basis": [
+        "unsupported",
+        "unsupported",
+        "unsupported",
+        "derived",
+        "normalized"
+      ]
+    },
+    {
+      "key": "vector_fp64",
+      "category": "extra",
+      "name": "Vector FP64 FMA",
+      "unit": "FLOPs",
+      "v": [
+        64,
+        128,
+        128,
+        128,
+        8
+      ],
+      "note": "补充 HPC 对比。CDNA 5 仅代表 MI455X，不能外推至 MI430X；MI455X 的 5 TFLOP/s 是粗略取整，8 是按架构整数粒度归一化值。",
+      "sources": [
+        "matrix12",
+        "microarch3",
+        "whitepaper4",
+        "brochure5"
+      ],
+      "basis": [
+        "official",
+        "official",
+        "official",
+        "official",
+        "normalized"
+      ]
+    },
+    {
+      "key": "matrix_fp64",
+      "category": "extra",
+      "name": "Matrix FP64：产品规格口径",
+      "unit": "FLOPs",
+      "v": [
+        null,
+        256,
+        256,
+        128,
+        8
+      ],
+      "note": "CDNA 1 无原生 FP64 MFMA。MI455X 数据手册的 Matrix / Vector FP64 同为约 5 TFLOP/s；此处 8 是规格归一化，不证明存在独立 FP64 WMMA 指令或额外矩阵加速。",
+      "sources": [
+        "matrix12",
+        "microarch3",
+        "whitepaper4",
+        "brochure5",
+        "isa5"
+      ],
+      "basis": [
+        "unsupported",
+        "official",
+        "official",
+        "official",
+        "normalized"
+      ]
+    },
+    {
+      "key": "lds_capacity",
+      "category": "memory",
+      "name": "LDS 容量",
+      "unit": "kB",
+      "unit_label": "kB / unit（1 kB = 1024 B）",
+      "v": [
+        64,
+        64,
+        64,
+        160,
+        320
+      ],
+      "v_bytes": [
+        65536,
+        65536,
+        65536,
+        163840,
+        327680
+      ],
+      "note": "本行是整 CU / WGP 的 LDS 物理总容量，不是单 workgroup 的可分配上限。本表按约定采用 1 kB = 1024 B；CDNA 5 的另外 64 kB L0 vector cache 不计入 320 kB LDS。",
+      "sources": [
+        "memory-specs",
+        "whitepaper4",
+        "whitepaper5",
+        "lds5"
+      ],
+      "basis": [
+        "converted",
+        "converted",
+        "converted",
+        "converted",
+        "converted"
+      ]
+    },
+    {
+      "key": "lds_read_bandwidth",
+      "category": "memory",
+      "name": "LDS 峰值读带宽",
+      "unit": "bytes",
+      "unit_label": "byte / unit / cycle（读出数据）",
+      "v": [
+        128,
+        128,
+        128,
+        256,
+        512
+      ],
+      "sub": [
+        "32 banks × 4 B",
+        "32 banks × 4 B",
+        "32 banks × 4 B",
+        "64 banks × 4 B",
+        "2 ports × 256 B；不同分区"
+      ],
+      "note": "统计整个 CU / WGP 无冲突的峰值读出数据带宽，不是读写带宽相加。CDNA 1–3：32 banks × 4 B = 128 B/cycle；CDNA 4 白皮书明确为 256 B/cycle read。CDNA 5 两个 SIMD pair 经两个 256 B/cycle 端口访问不同的物理 64 kB 分区时，合计读出 512 B/cycle；同周期访问同一分区会串行化至 256 B/cycle。bank conflict、指令宽度、调度及占用率可进一步降低实际值；不能把读带宽数值再当成同时满速写入的保证。",
+      "sources": [
+        "pipeline-resources",
+        "hip-hardware",
+        "whitepaper4",
+        "lds5"
+      ],
+      "basis": [
+        "official",
+        "official",
+        "official",
+        "official",
+        "official"
+      ]
+    },
+    {
+      "key": "vgpr_capacity",
+      "category": "memory",
+      "name": "VGPR 池容量：普通向量可用",
+      "unit": "kB",
+      "unit_label": "kB / unit（寄存器池，不是单线程上限）",
+      "v": [
+        256,
+        512,
+        512,
+        512,
+        512
+      ],
+      "v_bytes": [
+        262144,
+        524288,
+        524288,
+        524288,
+        524288
+      ],
+      "sub": [
+        "另有独立 AGPR",
+        "与 AGPR 共享",
+        "与 AGPR 共享",
+        "与 AGPR 共享",
+        "4 SIMD 共享"
+      ],
+      "note": "CDNA 1 将 512 kB 物理寄存器固定分为 256 kB 普通 VGPR 与 256 kB AGPR，普通 VALU 不能直接使用 AGPR 一半。CDNA 2–4 的 512 kB 是 VGPR/AGPR 共享的物理池，二者同时使用时消耗同一预算，不能各记 512 kB；每线程的可寻址数量仍有独立限制。CDNA 5 无独立 AGPR 空间，白皮书图示每 SIMD 128 kB VGPR，4 SIMD 合计 512 kB/WGP；每线程可寻址上限提高到 1024 并不代表物理容量变成 4 倍。",
+      "sources": [
+        "memory-specs",
+        "pipeline-resources",
+        "whitepaper2",
+        "whitepaper5",
+        "isa5"
+      ],
+      "basis": [
+        "converted",
+        "converted",
+        "converted",
+        "converted",
+        "converted"
+      ]
+    },
+    {
+      "key": "vector_register_total",
+      "category": "memory",
+      "name": "向量寄存器总物理容量：含 AGPR",
+      "unit": "kB",
+      "unit_label": "kB / unit（包含上一行，不能相加）",
+      "v": [
+        512,
+        512,
+        512,
+        512,
+        512
+      ],
+      "v_bytes": [
+        524288,
+        524288,
+        524288,
+        524288,
+        524288
+      ],
+      "sub": [
+        "VGPR / AGPR 固定分区",
+        "VGPR / AGPR 共享池",
+        "VGPR / AGPR 共享池",
+        "VGPR / AGPR 共享池",
+        "VGPR"
+      ],
+      "note": "用于比较白皮书框图中的总物理容量：CDNA 1–5 均为 512 kB，但 CDNA 1 的普通 VGPR 只占其中一半。此行已包含上一行，不能再相加。CDNA 2–4 的 AGPR 是同一物理池的另一寻址用途；CDNA 5 的 1024 registers/thread 是可寻址上限。",
+      "sources": [
+        "memory-specs",
+        "pipeline-resources",
+        "whitepaper1",
+        "whitepaper5"
+      ],
+      "basis": [
+        "converted",
+        "converted",
+        "converted",
+        "converted",
+        "converted"
+      ]
+    },
+    {
+      "key": "vgpr_read_bandwidth",
+      "category": "memory",
+      "name": "VGPR 物理峰值读带宽",
+      "unit": "bytes",
+      "unit_label": "byte / unit / cycle（物理 RF 读端口）",
+      "v": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "note": "所查 AMD 白皮书、ISA、ROCm 规格与流水线资料没有给出可统一比较的每 CU/WGP 物理 VGPR 读端口总带宽，故保留为未公开。FMA 的三个源操作数所需逻辑字节数、矩阵操作数复用、source cache 命中与 bypass 不是同一物理流量；不能由 FLOPs 直接倒算 RF 端口带宽。未公开不代表带宽为零。",
+      "sources": [
+        "pipeline-resources",
+        "whitepaper1",
+        "whitepaper2",
+        "whitepaper3",
+        "whitepaper4",
+        "whitepaper5",
+        "isa4",
+        "isa5"
+      ],
+      "basis": [
+        "not-public",
+        "not-public",
+        "not-public",
+        "not-public",
+        "not-public"
+      ]
+    },
+    {
+      "key": "vgpr_write_bandwidth",
+      "category": "memory",
+      "name": "VGPR 物理峰值写带宽",
+      "unit": "bytes",
+      "unit_label": "byte / unit / cycle（物理 RF 写端口）",
+      "v": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "note": "未找到各代可比的官方物理 VGPR 写端口峰值。VALU 写回、MFMA/WMMA 累加器写回与访存返回可能共享或使用不同资源；仅按每周期输出元素数乘 4 bytes 得到的是特定指令的逻辑写回量，不能直接记作全部 RF 写端口峰值。此行与读带宽分开，不构造无证据的读写合计。",
+      "sources": [
+        "pipeline-resources",
+        "whitepaper1",
+        "whitepaper2",
+        "whitepaper3",
+        "whitepaper4",
+        "whitepaper5",
+        "isa4",
+        "isa5"
+      ],
+      "basis": [
+        "not-public",
+        "not-public",
+        "not-public",
+        "not-public",
+        "not-public"
+      ]
+    }
+  ],
+  "sources": {
+    "microarch3": "https://rocmdocs.amd.com/en/latest/reference/gpu-arch/mi300.html",
+    "matrix12": "https://rocm.blogs.amd.com/software-tools-optimization/matrix-cores/README.html",
+    "microarch4": "https://rocmdocs.amd.com/en/latest/reference/gpu-arch/mi350.html",
+    "microarch2": "https://rocmdocs.amd.com/en/latest/reference/gpu-arch/mi250.html",
+    "microarch1": "https://rocmdocs.amd.com/en/latest/reference/gpu-arch/mi100.html",
+    "matrix34": "https://rocm.blogs.amd.com/software-tools-optimization/matrix-cores-cdna/README.html",
+    "product5": "https://www.amd.com/en/products/accelerators/instinct/mi400/mi455x.html",
+    "whitepaper1": "https://www.amd.com/content/dam/amd/en/documents/instinct-business-docs/white-papers/amd-cdna-white-paper.pdf",
+    "whitepaper2": "https://www.amd.com/content/dam/amd/en/documents/instinct-business-docs/white-papers/amd-cdna2-white-paper.pdf",
+    "attention5": "https://rocm.blogs.amd.com/software-tools-optimization/gluon-attention-decode-mi450/README.html",
+    "llvm-schedule": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/AMDGPU/SISchedule.td",
+    "llvm-processors": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/AMDGPU/GCNProcessors.td",
+    "llvm-vop1": "https://raw.githubusercontent.com/llvm/llvm-project/main/llvm/lib/Target/AMDGPU/VOP1Instructions.td",
+    "whitepaper3": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/white-papers/amd-cdna-3-white-paper.pdf",
+    "brochure5": "https://www.amd.com/content/dam/amd/en/documents/products/accelerators/instinct/amd-instinct-mi455x_brochure.pdf",
+    "hotchips3": "https://hc2024.hotchips.org/assets/program/conference/day1/23_HC2024.AMD.MI300X.ASmith(MI300X).v1.Final.20240817.pdf",
+    "pipeline-resources": "https://rocm.docs.amd.com/projects/rocprofiler-compute/en/docs-10.1.0/conceptual/cdna/pipeline-descriptions.html",
+    "memory-specs": "https://rocm.docs.amd.com/en/docs-7.14.1/reference/gpu-specs.html",
+    "hip-hardware": "https://rocmdocs.amd.com/projects/HIP/en/latest/understand/hardware_implementation.html",
+    "lds5": "https://rocm.blogs.amd.com/software-tools-optimization/mi450-lds-optimization/README.html",
+    "whitepaper4": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/white-papers/amd-cdna-4-architecture-whitepaper.pdf",
+    "whitepaper5": "https://www.amd.com/content/dam/amd/en/documents/products/technologies/cdna/amd-cdna5-whitepaper.pdf",
+    "isa5": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/amd-instinct-cdna5-instruction-set-architecture.pdf",
+    "isa4": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/amd-instinct-cdna4-instruction-set-architecture.pdf"
+  }
+}

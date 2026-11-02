@@ -1,0 +1,186 @@
+[
+  {
+    "key": "machine-readable",
+    "url": "https://gpuopen.com/machine-readable-isa/",
+    "resolved_url": "https://gpuopen.com/machine-readable-isa/",
+    "path": "sources\\cdna_changes\\machine-readable.html",
+    "bytes": 230822,
+    "sha256": "be93350b9d136d0ebd4da94ca96a9234d065a382ee42595be68058fddafdbbc3",
+    "retrieved": "2026-10-15",
+    "zip_links": []
+  },
+  {
+    "key": "architecture",
+    "url": "https://www.amd.com/en/technologies/cdna.html",
+    "resolved_url": "https://www.amd.com/en/technologies/cdna.html",
+    "path": "sources\\cdna_changes\\architecture.html",
+    "bytes": 240637,
+    "sha256": "6fc975a15993c6456e428d0db444fb56fdd58d6c7e3a0038b2e03da4d7f07429",
+    "retrieved": "2026-10-15"
+  },
+  {
+    "key": "lds5",
+    "url": "https://rocm.blogs.amd.com/software-tools-optimization/mi450-lds-optimization/README.html",
+    "resolved_url": "https://rocm.blogs.amd.com/software-tools-optimization/mi450-lds-optimization/README.html",
+    "path": "sources\\cdna_changes\\lds5.html",
+    "bytes": 159507,
+    "sha256": "c1d546a88cbdc0c0843da3f036e1cefb57b7c39ab6d113cab377b296e994110b",
+    "retrieved": "2026-10-15"
+  },
+  {
+    "key": "attention5",
+    "url": "https://rocm.blogs.amd.com/software-tools-optimization/gluon-attention-decode-mi450/README.html",
+    "resolved_url": "https://rocm.blogs.amd.com/software-tools-optimization/gluon-attention-decode-mi450/README.html",
+    "path": "sources\\cdna_changes\\attention5.html",
+    "bytes": 104178,
+    "sha256": "4403e27406019b8966c681dbfdd42f52251946fb39beb5f19f2cceda3e5eb0f5",
+    "retrieved": "2026-10-15"
+  },
+  {
+    "key": "gemm4",
+    "url": "https://rocm.blogs.amd.com/software-tools-optimization/cdna4-gemm-kernels/README.html",
+    "resolved_url": "https://rocm.blogs.amd.com/software-tools-optimization/cdna4-gemm-kernels/README.html",
+    "path": "sources\\cdna_changes\\gemm4.html",
+    "bytes": 178880,
+    "sha256": "3995e7d3c345b2007a8722690121b818bc2f9b8b2a55547305ca9a5b4770734f",
+    "retrieved": "2026-10-15"
+  },
+  {
+    "key": "flydsl",
+    "url": "https://rocm.docs.amd.com/projects/FlyDSL/en/latest/architecture_guide.html",
+    "resolved_url": "https://rocm.docs.amd.com/projects/FlyDSL/en/latest/architecture_guide.html",
+    "path": "sources\\cdna_changes\\flydsl.html",
+    "bytes": 105081,
+    "sha256": "5c6f4984c5fc52f89dd0127f496e44ed859d51eed2db42972b9e0db929c8a05d",
+    "retrieved": "2026-10-15"
+  },
+  {
+    "key": "whitepaper4",
+    "url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/white-papers/amd-cdna-4-architecture-whitepaper.pdf",
+    "resolved_url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/white-papers/amd-cdna-4-architecture-whitepaper.pdf",
+    "path": "sources\\cdna_changes\\whitepaper4.pdf",
+    "bytes": 2703210,
+    "sha256": "7ebf89edb9b82198b9edea7bb37eb7fe7c998842257eb21ef7a459a87774a4b2",
+    "retrieved": "2026-10-15",
+    "pages": 21
+  },
+  {
+    "key": "llvm-gfx1250",
+    "url": "https://llvm.org/docs/AMDGPU/gfx1250.html",
+    "error": "HTTP Error 404: Not Found"
+  },
+  {
+    "key": "rga",
+    "url": "https://gpuopen.com/rga/",
+    "resolved_url": "https://gpuopen.com/rga/",
+    "path": "sources\\cdna_changes\\rga.html",
+    "bytes": 269613,
+    "sha256": "23a27172fa35490d60164ef903e0e6bed754a57b1737fa3f1e4bd5e80a3059e0",
+    "retrieved": "2026-10-15"
+  },
+  {
+    "key": "llvm-usage",
+    "url": "https://llvm.org/docs/AMDGPUUsage.html",
+    "resolved_url": "https://llvm.org/docs/AMDGPUUsage.html",
+    "path": "sources\\cdna_changes\\llvm-usage.html",
+    "bytes": 1396281,
+    "sha256": "b9f7b2fac7736af0a96fa74a0805316caeec053385a61280ddf58bf54ea81eb6",
+    "retrieved": "2026-10-15"
+  },
+  {
+    "key": "whitepaper5",
+    "url": "https://www.amd.com/content/dam/amd/en/documents/products/technologies/cdna/amd-cdna5-whitepaper.pdf",
+    "resolved_url": "https://www.amd.com/content/dam/amd/en/documents/products/technologies/cdna/amd-cdna5-whitepaper.pdf",
+    "path": "sources\\cdna_changes\\whitepaper5.pdf",
+    "bytes": 4152251,
+    "sha256": "2381d60185f79989d3d5e4260c86f72504fcab256b40bb85fe4a6dd782afb3ef",
+    "retrieved": "2026-10-15",
+    "pages": 24
+  },
+  {
+    "key": "isa5",
+    "url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/amd-instinct-cdna5-instruction-set-architecture.pdf",
+    "resolved_url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/amd-instinct-cdna5-instruction-set-architecture.pdf",
+    "path": "sources\\cdna_changes\\isa5.pdf",
+    "bytes": 3596954,
+    "sha256": "5fae9822405c04f3e380c38d55b27df5b19469b78d5dfdd87c319a712f0239a8",
+    "retrieved": "2026-10-15",
+    "pages": 832
+  },
+  {
+    "key": "isa4",
+    "url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/amd-instinct-cdna4-instruction-set-architecture.pdf",
+    "resolved_url": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/amd-instinct-cdna4-instruction-set-architecture.pdf",
+    "path": "sources\\cdna_changes\\isa4.pdf",
+    "bytes": 4596505,
+    "sha256": "c459fb8db759006da52df57b5d7b913686ed7a68b52dc76e3f557f553a5d667f",
+    "retrieved": "2026-10-15",
+    "pages": 608
+  },
+  {
+    "key": "isa-xml",
+    "url": "https://gpuopen.com/download/machine-readable-isa/latest/",
+    "resolved_url": "https://gpuopen.com/download/AMD_GPU_MR_ISA_XML_2026_08_06.zip",
+    "bytes": 2294639,
+    "sha256": "82404f1126761b7877595b622afa7e1f311f2f41e89a3abe9aaf8ad045c082e2",
+    "extracted": [
+      "amdgpu_isa_cdna5.xml",
+      "amdgpu_isa_cdna4.xml"
+    ],
+    "retrieved": "2026-10-15"
+  },
+  {
+    "key": "helios-blog",
+    "url": "https://rocm.blogs.amd.com/ecosystems-and-partners/cdna5-helios/README.html",
+    "resolved_url": "https://rocm.blogs.amd.com/ecosystems-and-partners/cdna5-helios/README.html",
+    "path": "sources\\cdna_changes\\helios-blog.html",
+    "bytes": 70488,
+    "sha256": "60d23c2ae567470272d184f0c1064b0b2de306fba34ca14cd68c140d15f19909",
+    "retrieved": "2026-10-15"
+  },
+  {
+    "key": "llvm-dma",
+    "url": "https://www.llvm.org/docs/AMDGPUDMAOperations.html",
+    "resolved_url": "https://www.llvm.org/docs/AMDGPUDMAOperations.html",
+    "path": "sources\\cdna_changes\\llvm-dma.html",
+    "bytes": 76816,
+    "sha256": "6038e91db56d7ada39a3aaea0d7b4f55a7663e30f1249d521f644a39cf07f430",
+    "retrieved": "2026-10-15"
+  },
+  {
+    "key": "product5",
+    "url": "https://www.amd.com/en/products/accelerators/instinct/mi400/mi455x.html",
+    "resolved_url": "https://www.amd.com/en/products/accelerators/instinct/mi400/mi455x.html",
+    "path": "sources\\cdna_changes\\product5.html",
+    "bytes": 220412,
+    "sha256": "b027f89e34a4fba3faad4fed9a268078238fcf63a33424550d452ba9052a3a09",
+    "retrieved": "2026-10-15"
+  },
+  {
+    "key": "product4",
+    "url": "https://www.amd.com/en/products/accelerators/instinct/mi350/mi355x.html",
+    "resolved_url": "https://www.amd.com/en/products/accelerators/instinct/mi350/mi355x.html",
+    "path": "sources\\cdna_changes\\product4.html",
+    "bytes": 239283,
+    "sha256": "5a775d2bd95dfff0656e7f12d0273236441a8a21b582a92d0d818738629dc296",
+    "retrieved": "2026-10-15"
+  },
+  {
+    "key": "microarch4",
+    "url": "https://rocmdocs.amd.com/en/latest/reference/gpu-arch/mi350.html",
+    "resolved_url": "https://rocmdocs.amd.com/en/latest/reference/gpu-arch/mi350.html",
+    "path": "sources\\cdna_changes\\microarch4.html",
+    "bytes": 61014,
+    "sha256": "ebfccf51202380d39578d8972596030e90322f25eefadc760e155997b329aa47",
+    "retrieved": "2026-10-15"
+  },
+  {
+    "key": "clang-builtins",
+    "url": "https://releases.llvm.org/23.1.0/tools/clang/docs/AMDGPUBuiltinReference.html",
+    "resolved_url": "https://releases.llvm.org/23.1.0/tools/clang/docs/AMDGPUBuiltinReference.html",
+    "path": "sources\\cdna_changes\\clang-builtins.html",
+    "bytes": 1404393,
+    "sha256": "f78f813b1fd1d8d0dbd9efdacd6047eded9867535fa935c32d24b2b6572d25e0",
+    "retrieved": "2026-10-15"
+  }
+]
