@@ -1,0 +1,89 @@
+{
+  "scope": "CDNA4, per CU per cycle",
+  "physical_rf_peak_read_B_per_unit_cycle": null,
+  "physical_rf_peak_write_B_per_unit_cycle": null,
+  "assumptions": [
+    "Dense target-peak normalization, not measured instruction latency or RF bandwidth",
+    "A/B values counted at each matrix instruction, before operand reuse/source-cache hits",
+    "C read and D write each count 4*m*n bytes per instruction; FP32/int32 accumulation",
+    "No physical RF array reads/writes inferred: forwarding, caching, packing, replication and ports are not modeled",
+    "LDS input writes count packed A/B payload only; scale registers, padding, VALU, addresses and epilogue excluded",
+    "CDNA4 C/D may be in AGPR or VGPR; shared capacity does not prove shared port topology",
+    "4 SIMD allocation assumed balanced when dividing aggregate rates by 4"
+  ],
+  "native_operand_traffic": [
+    {
+      "format": "FP16/BF16",
+      "m": 32,
+      "n": 32,
+      "k": 16,
+      "target_ops_per_unit_cycle": 4096.0,
+      "ab_logical_read_B_per_unit_cycle": 256.0,
+      "c_logical_read_B_per_unit_cycle": 512.0,
+      "d_logical_write_B_per_unit_cycle": 512.0,
+      "matrix_total_logical_read_B_per_unit_cycle": 768.0
+    },
+    {
+      "format": "FP8 F8F6F4 path",
+      "m": 32,
+      "n": 32,
+      "k": 64,
+      "target_ops_per_unit_cycle": 8192.0,
+      "ab_logical_read_B_per_unit_cycle": 256.0,
+      "c_logical_read_B_per_unit_cycle": 256.0,
+      "d_logical_write_B_per_unit_cycle": 256.0,
+      "matrix_total_logical_read_B_per_unit_cycle": 512.0
+    },
+    {
+      "format": "FP6 packed",
+      "m": 32,
+      "n": 32,
+      "k": 64,
+      "target_ops_per_unit_cycle": 16384.0,
+      "ab_logical_read_B_per_unit_cycle": 384.0,
+      "c_logical_read_B_per_unit_cycle": 512.0,
+      "d_logical_write_B_per_unit_cycle": 512.0,
+      "matrix_total_logical_read_B_per_unit_cycle": 896.0
+    },
+    {
+      "format": "FP4 packed",
+      "m": 32,
+      "n": 32,
+      "k": 64,
+      "target_ops_per_unit_cycle": 16384.0,
+      "ab_logical_read_B_per_unit_cycle": 256.0,
+      "c_logical_read_B_per_unit_cycle": 512.0,
+      "d_logical_write_B_per_unit_cycle": 512.0,
+      "matrix_total_logical_read_B_per_unit_cycle": 768.0
+    },
+    {
+      "format": "INT8",
+      "m": 32,
+      "n": 32,
+      "k": 32,
+      "target_ops_per_unit_cycle": 8192.0,
+      "ab_logical_read_B_per_unit_cycle": 256.0,
+      "c_logical_read_B_per_unit_cycle": 512.0,
+      "d_logical_write_B_per_unit_cycle": 512.0,
+      "matrix_total_logical_read_B_per_unit_cycle": 768.0
+    }
+  ],
+  "example": {
+    "format": "FP16/BF16",
+    "wave_tile": "64x64",
+    "workgroup_tile": "128x128",
+    "live_k": 16,
+    "native_instructions_per_wave": 4,
+    "wave_ab_unique_bytes": 4096,
+    "wave_ab_logical_consumed_bytes": 8192,
+    "wave_c_logical_read_bytes": 16384,
+    "wave_d_logical_write_bytes": 16384,
+    "four_wave_target_cycles": 128.0,
+    "lds_to_vgpr_payload_write_B_per_unit_cycle": 128.0,
+    "ab_logical_read_B_per_unit_cycle": 256.0,
+    "c_logical_read_B_per_unit_cycle": 512.0,
+    "d_logical_write_B_per_unit_cycle": 512.0,
+    "total_logical_read_B_per_unit_cycle": 768.0,
+    "total_logical_write_B_per_unit_cycle": 640.0
+  }
+}

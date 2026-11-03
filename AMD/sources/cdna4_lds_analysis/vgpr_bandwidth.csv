@@ -1,0 +1,6 @@
+﻿format,m,n,k,target_ops_per_unit_cycle,ab_logical_read_B_per_unit_cycle,c_logical_read_B_per_unit_cycle,d_logical_write_B_per_unit_cycle,matrix_total_logical_read_B_per_unit_cycle
+FP16/BF16,32,32,16,4096.0,256.0,512.0,512.0,768.0
+FP8 F8F6F4 path,32,32,64,8192.0,256.0,256.0,256.0,512.0
+FP6 packed,32,32,64,16384.0,384.0,512.0,512.0,896.0
+FP4 packed,32,32,64,16384.0,256.0,512.0,512.0,768.0
+INT8,32,32,32,8192.0,256.0,512.0,512.0,768.0
