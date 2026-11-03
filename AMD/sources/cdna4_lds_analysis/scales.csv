@@ -1,0 +1,4 @@
+﻿format,scale_bytes_per_element,square_wave_side_lower_bound,read_B_per_cu_cycle_32,read_B_per_cu_cycle_64
+MXFP8,0.03125,33.0,264.0,132.0
+MXFP6,0.03125,50.0,400.0,200.0
+MXFP4,0.03125,34.0,272.0,136.0

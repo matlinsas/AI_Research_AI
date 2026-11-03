@@ -1,0 +1,437 @@
+{
+  "date": "2026-11-03",
+  "assumptions": [
+    "4 matrix engines per CU; native table cycles are per-wave instruction cycles",
+    "Dense, FP32 accumulation except FP64; retained C/D with in-place accumulation; no inner-loop C/D LDS traffic",
+    "Ideal packed A/B payload; no bank conflicts, lane duplication, spills, or scaling metadata in native/wave/register tables",
+    "No cross-wave LDS multicast assumed; each wave loads its own operand fragments",
+    "Register table uses 32x32 native MFMA, full A/B two-buffer register staging, 16 illustrative ordinary registers/lane overhead; C in AGPR",
+    "RF max waves excludes LDS/SGPR/scheduler/barrier limitations; actual liveness and allocation may differ",
+    "1 kB=1024 B; LDS read peak 256 byte/CU/cycle is not a promise of extra simultaneous write throughput"
+  ],
+  "native": [
+    {
+      "format": "FP32",
+      "m": 16,
+      "n": 16,
+      "k": 4,
+      "cycles_per_wave": 32,
+      "peak_ops_per_cu_cycle": 256.0,
+      "ab_bytes_per_wave": 512,
+      "ab_bytes_per_cu_cycle": 64.0
+    },
+    {
+      "format": "FP32",
+      "m": 32,
+      "n": 32,
+      "k": 2,
+      "cycles_per_wave": 64,
+      "peak_ops_per_cu_cycle": 256.0,
+      "ab_bytes_per_wave": 512,
+      "ab_bytes_per_cu_cycle": 32.0
+    },
+    {
+      "format": "FP64",
+      "m": 16,
+      "n": 16,
+      "k": 4,
+      "cycles_per_wave": 64,
+      "peak_ops_per_cu_cycle": 128.0,
+      "ab_bytes_per_wave": 1024,
+      "ab_bytes_per_cu_cycle": 64.0
+    },
+    {
+      "format": "FP16/BF16",
+      "m": 16,
+      "n": 16,
+      "k": 32,
+      "cycles_per_wave": 16,
+      "peak_ops_per_cu_cycle": 4096.0,
+      "ab_bytes_per_wave": 2048,
+      "ab_bytes_per_cu_cycle": 512.0
+    },
+    {
+      "format": "FP16/BF16",
+      "m": 32,
+      "n": 32,
+      "k": 16,
+      "cycles_per_wave": 32,
+      "peak_ops_per_cu_cycle": 4096.0,
+      "ab_bytes_per_wave": 2048,
+      "ab_bytes_per_cu_cycle": 256.0
+    },
+    {
+      "format": "FP8 F8F6F4 path",
+      "m": 16,
+      "n": 16,
+      "k": 128,
+      "cycles_per_wave": 32,
+      "peak_ops_per_cu_cycle": 8192.0,
+      "ab_bytes_per_wave": 4096,
+      "ab_bytes_per_cu_cycle": 512.0
+    },
+    {
+      "format": "FP8 F8F6F4 path",
+      "m": 32,
+      "n": 32,
+      "k": 64,
+      "cycles_per_wave": 64,
+      "peak_ops_per_cu_cycle": 8192.0,
+      "ab_bytes_per_wave": 4096,
+      "ab_bytes_per_cu_cycle": 256.0
+    },
+    {
+      "format": "FP6 packed",
+      "m": 16,
+      "n": 16,
+      "k": 128,
+      "cycles_per_wave": 16,
+      "peak_ops_per_cu_cycle": 16384.0,
+      "ab_bytes_per_wave": 3072.0,
+      "ab_bytes_per_cu_cycle": 768.0
+    },
+    {
+      "format": "FP6 packed",
+      "m": 32,
+      "n": 32,
+      "k": 64,
+      "cycles_per_wave": 32,
+      "peak_ops_per_cu_cycle": 16384.0,
+      "ab_bytes_per_wave": 3072.0,
+      "ab_bytes_per_cu_cycle": 384.0
+    },
+    {
+      "format": "FP4 packed",
+      "m": 16,
+      "n": 16,
+      "k": 128,
+      "cycles_per_wave": 16,
+      "peak_ops_per_cu_cycle": 16384.0,
+      "ab_bytes_per_wave": 2048.0,
+      "ab_bytes_per_cu_cycle": 512.0
+    },
+    {
+      "format": "FP4 packed",
+      "m": 32,
+      "n": 32,
+      "k": 64,
+      "cycles_per_wave": 32,
+      "peak_ops_per_cu_cycle": 16384.0,
+      "ab_bytes_per_wave": 2048.0,
+      "ab_bytes_per_cu_cycle": 256.0
+    },
+    {
+      "format": "INT8",
+      "m": 16,
+      "n": 16,
+      "k": 64,
+      "cycles_per_wave": 16,
+      "peak_ops_per_cu_cycle": 8192.0,
+      "ab_bytes_per_wave": 2048,
+      "ab_bytes_per_cu_cycle": 512.0
+    },
+    {
+      "format": "INT8",
+      "m": 32,
+      "n": 32,
+      "k": 32,
+      "cycles_per_wave": 32,
+      "peak_ops_per_cu_cycle": 8192.0,
+      "ab_bytes_per_wave": 2048,
+      "ab_bytes_per_cu_cycle": 256.0
+    }
+  ],
+  "wave_tiles": [
+    {
+      "format": "FP16/BF16",
+      "wave_m": 32,
+      "wave_n": 32,
+      "ab_read_bytes_per_cu_cycle": 256.0,
+      "lds_fraction": 1.0
+    },
+    {
+      "format": "FP16/BF16",
+      "wave_m": 64,
+      "wave_n": 64,
+      "ab_read_bytes_per_cu_cycle": 128.0,
+      "lds_fraction": 0.5
+    },
+    {
+      "format": "FP16/BF16",
+      "wave_m": 128,
+      "wave_n": 128,
+      "ab_read_bytes_per_cu_cycle": 64.0,
+      "lds_fraction": 0.25
+    },
+    {
+      "format": "FP8 F8F6F4 path",
+      "wave_m": 32,
+      "wave_n": 32,
+      "ab_read_bytes_per_cu_cycle": 256.0,
+      "lds_fraction": 1.0
+    },
+    {
+      "format": "FP8 F8F6F4 path",
+      "wave_m": 64,
+      "wave_n": 64,
+      "ab_read_bytes_per_cu_cycle": 128.0,
+      "lds_fraction": 0.5
+    },
+    {
+      "format": "FP8 F8F6F4 path",
+      "wave_m": 128,
+      "wave_n": 128,
+      "ab_read_bytes_per_cu_cycle": 64.0,
+      "lds_fraction": 0.25
+    },
+    {
+      "format": "FP6 packed",
+      "wave_m": 32,
+      "wave_n": 32,
+      "ab_read_bytes_per_cu_cycle": 384.0,
+      "lds_fraction": 1.5
+    },
+    {
+      "format": "FP6 packed",
+      "wave_m": 64,
+      "wave_n": 64,
+      "ab_read_bytes_per_cu_cycle": 192.0,
+      "lds_fraction": 0.75
+    },
+    {
+      "format": "FP6 packed",
+      "wave_m": 128,
+      "wave_n": 128,
+      "ab_read_bytes_per_cu_cycle": 96.0,
+      "lds_fraction": 0.375
+    },
+    {
+      "format": "FP4 packed",
+      "wave_m": 32,
+      "wave_n": 32,
+      "ab_read_bytes_per_cu_cycle": 256.0,
+      "lds_fraction": 1.0
+    },
+    {
+      "format": "FP4 packed",
+      "wave_m": 64,
+      "wave_n": 64,
+      "ab_read_bytes_per_cu_cycle": 128.0,
+      "lds_fraction": 0.5
+    },
+    {
+      "format": "FP4 packed",
+      "wave_m": 128,
+      "wave_n": 128,
+      "ab_read_bytes_per_cu_cycle": 64.0,
+      "lds_fraction": 0.25
+    }
+  ],
+  "registers": [
+    {
+      "format": "FP16/BF16",
+      "wave_tile": "32x32",
+      "native_k": 16,
+      "accumulator_regs_per_lane": 16.0,
+      "ab_regs_per_lane_one_buffer": 8.0,
+      "ab_buffers": 2,
+      "assumed_other_arch_regs_per_lane": 16,
+      "allocated_regs_per_lane": 48,
+      "rf_only_max_waves_per_simd": 8,
+      "allocated_kB_per_wave": 12.0,
+      "ab_read_bytes_per_cu_cycle": 256.0
+    },
+    {
+      "format": "FP16/BF16",
+      "wave_tile": "64x64",
+      "native_k": 16,
+      "accumulator_regs_per_lane": 64.0,
+      "ab_regs_per_lane_one_buffer": 16.0,
+      "ab_buffers": 2,
+      "assumed_other_arch_regs_per_lane": 16,
+      "allocated_regs_per_lane": 112,
+      "rf_only_max_waves_per_simd": 4,
+      "allocated_kB_per_wave": 28.0,
+      "ab_read_bytes_per_cu_cycle": 128.0
+    },
+    {
+      "format": "FP16/BF16",
+      "wave_tile": "128x128",
+      "native_k": 16,
+      "accumulator_regs_per_lane": 256.0,
+      "ab_regs_per_lane_one_buffer": 32.0,
+      "ab_buffers": 2,
+      "assumed_other_arch_regs_per_lane": 16,
+      "allocated_regs_per_lane": 336,
+      "rf_only_max_waves_per_simd": 1,
+      "allocated_kB_per_wave": 84.0,
+      "ab_read_bytes_per_cu_cycle": 64.0
+    },
+    {
+      "format": "FP8 F8F6F4 path",
+      "wave_tile": "32x32",
+      "native_k": 64,
+      "accumulator_regs_per_lane": 16.0,
+      "ab_regs_per_lane_one_buffer": 16.0,
+      "ab_buffers": 2,
+      "assumed_other_arch_regs_per_lane": 16,
+      "allocated_regs_per_lane": 64,
+      "rf_only_max_waves_per_simd": 8,
+      "allocated_kB_per_wave": 16.0,
+      "ab_read_bytes_per_cu_cycle": 256.0
+    },
+    {
+      "format": "FP8 F8F6F4 path",
+      "wave_tile": "64x64",
+      "native_k": 64,
+      "accumulator_regs_per_lane": 64.0,
+      "ab_regs_per_lane_one_buffer": 32.0,
+      "ab_buffers": 2,
+      "assumed_other_arch_regs_per_lane": 16,
+      "allocated_regs_per_lane": 144,
+      "rf_only_max_waves_per_simd": 3,
+      "allocated_kB_per_wave": 36.0,
+      "ab_read_bytes_per_cu_cycle": 128.0
+    },
+    {
+      "format": "FP8 F8F6F4 path",
+      "wave_tile": "128x128",
+      "native_k": 64,
+      "accumulator_regs_per_lane": 256.0,
+      "ab_regs_per_lane_one_buffer": 64.0,
+      "ab_buffers": 2,
+      "assumed_other_arch_regs_per_lane": 16,
+      "allocated_regs_per_lane": 400,
+      "rf_only_max_waves_per_simd": 1,
+      "allocated_kB_per_wave": 100.0,
+      "ab_read_bytes_per_cu_cycle": 64.0
+    },
+    {
+      "format": "FP6 packed",
+      "wave_tile": "32x32",
+      "native_k": 64,
+      "accumulator_regs_per_lane": 16.0,
+      "ab_regs_per_lane_one_buffer": 12.0,
+      "ab_buffers": 2,
+      "assumed_other_arch_regs_per_lane": 16,
+      "allocated_regs_per_lane": 56,
+      "rf_only_max_waves_per_simd": 8,
+      "allocated_kB_per_wave": 14.0,
+      "ab_read_bytes_per_cu_cycle": 384.0
+    },
+    {
+      "format": "FP6 packed",
+      "wave_tile": "64x64",
+      "native_k": 64,
+      "accumulator_regs_per_lane": 64.0,
+      "ab_regs_per_lane_one_buffer": 24.0,
+      "ab_buffers": 2,
+      "assumed_other_arch_regs_per_lane": 16,
+      "allocated_regs_per_lane": 128,
+      "rf_only_max_waves_per_simd": 4,
+      "allocated_kB_per_wave": 32.0,
+      "ab_read_bytes_per_cu_cycle": 192.0
+    },
+    {
+      "format": "FP6 packed",
+      "wave_tile": "128x128",
+      "native_k": 64,
+      "accumulator_regs_per_lane": 256.0,
+      "ab_regs_per_lane_one_buffer": 48.0,
+      "ab_buffers": 2,
+      "assumed_other_arch_regs_per_lane": 16,
+      "allocated_regs_per_lane": 368,
+      "rf_only_max_waves_per_simd": 1,
+      "allocated_kB_per_wave": 92.0,
+      "ab_read_bytes_per_cu_cycle": 96.0
+    },
+    {
+      "format": "FP4 packed",
+      "wave_tile": "32x32",
+      "native_k": 64,
+      "accumulator_regs_per_lane": 16.0,
+      "ab_regs_per_lane_one_buffer": 8.0,
+      "ab_buffers": 2,
+      "assumed_other_arch_regs_per_lane": 16,
+      "allocated_regs_per_lane": 48,
+      "rf_only_max_waves_per_simd": 8,
+      "allocated_kB_per_wave": 12.0,
+      "ab_read_bytes_per_cu_cycle": 256.0
+    },
+    {
+      "format": "FP4 packed",
+      "wave_tile": "64x64",
+      "native_k": 64,
+      "accumulator_regs_per_lane": 64.0,
+      "ab_regs_per_lane_one_buffer": 16.0,
+      "ab_buffers": 2,
+      "assumed_other_arch_regs_per_lane": 16,
+      "allocated_regs_per_lane": 112,
+      "rf_only_max_waves_per_simd": 4,
+      "allocated_kB_per_wave": 28.0,
+      "ab_read_bytes_per_cu_cycle": 128.0
+    },
+    {
+      "format": "FP4 packed",
+      "wave_tile": "128x128",
+      "native_k": 64,
+      "accumulator_regs_per_lane": 256.0,
+      "ab_regs_per_lane_one_buffer": 32.0,
+      "ab_buffers": 2,
+      "assumed_other_arch_regs_per_lane": 16,
+      "allocated_regs_per_lane": 336,
+      "rf_only_max_waves_per_simd": 1,
+      "allocated_kB_per_wave": 84.0,
+      "ab_read_bytes_per_cu_cycle": 64.0
+    }
+  ],
+  "scales": [
+    {
+      "format": "MXFP8",
+      "scale_bytes_per_element": 0.03125,
+      "square_wave_side_lower_bound": 33.0,
+      "read_B_per_cu_cycle_32": 264.0,
+      "read_B_per_cu_cycle_64": 132.0
+    },
+    {
+      "format": "MXFP6",
+      "scale_bytes_per_element": 0.03125,
+      "square_wave_side_lower_bound": 50.0,
+      "read_B_per_cu_cycle_32": 400.0,
+      "read_B_per_cu_cycle_64": 200.0
+    },
+    {
+      "format": "MXFP4",
+      "scale_bytes_per_element": 0.03125,
+      "square_wave_side_lower_bound": 34.0,
+      "read_B_per_cu_cycle_32": 272.0,
+      "read_B_per_cu_cycle_64": 136.0
+    }
+  ],
+  "staging": [
+    {
+      "wave_tile": "32x32",
+      "workgroup_tile": "64x64",
+      "lds_buffer_k": 64,
+      "lds_double_buffer_kB": 32.0,
+      "read_B_per_cu_cycle": 256.0,
+      "stage_write_B_per_cu_cycle": 128.0
+    },
+    {
+      "wave_tile": "64x64",
+      "workgroup_tile": "128x128",
+      "lds_buffer_k": 64,
+      "lds_double_buffer_kB": 64.0,
+      "read_B_per_cu_cycle": 128.0,
+      "stage_write_B_per_cu_cycle": 64.0
+    },
+    {
+      "wave_tile": "128x128",
+      "workgroup_tile": "256x256",
+      "lds_buffer_k": 64,
+      "lds_double_buffer_kB": 128.0,
+      "read_B_per_cu_cycle": 64.0,
+      "stage_write_B_per_cu_cycle": 32.0
+    }
+  ]
+}

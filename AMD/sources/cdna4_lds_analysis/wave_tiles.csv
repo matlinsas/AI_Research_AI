@@ -1,0 +1,13 @@
+﻿format,wave_m,wave_n,ab_read_bytes_per_cu_cycle,lds_fraction
+FP16/BF16,32,32,256.0,1.0
+FP16/BF16,64,64,128.0,0.5
+FP16/BF16,128,128,64.0,0.25
+FP8 F8F6F4 path,32,32,256.0,1.0
+FP8 F8F6F4 path,64,64,128.0,0.5
+FP8 F8F6F4 path,128,128,64.0,0.25
+FP6 packed,32,32,384.0,1.5
+FP6 packed,64,64,192.0,0.75
+FP6 packed,128,128,96.0,0.375
+FP4 packed,32,32,256.0,1.0
+FP4 packed,64,64,128.0,0.5
+FP4 packed,128,128,64.0,0.25

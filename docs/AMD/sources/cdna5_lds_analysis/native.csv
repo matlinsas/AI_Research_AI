@@ -1,0 +1,7 @@
+﻿format,native_m,native_n,native_k,peak_ops_per_wgp_cycle,ab_payload_B_per_wave,ab_required_B_per_wgp_cycle
+FP16/BF16,16,16,32,8192,2048,1024.0
+FP8,16,16,128,32768,4096,2048.0
+FP6 packed,16,16,128,32768,3072.0,1536.0
+FP4 packed,32,16,128,65536,3072.0,1536.0
+INT8,16,16,64,8192,2048,512.0
+FP32,16,16,4,512,512,128.0

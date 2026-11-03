@@ -1,0 +1,13 @@
+﻿format,wave_tile,native_k,accumulator_regs_per_lane,ab_regs_per_lane_one_buffer,ab_buffers,assumed_other_arch_regs_per_lane,allocated_regs_per_lane,rf_only_max_waves_per_simd,allocated_kB_per_wave,ab_read_bytes_per_cu_cycle
+FP16/BF16,32x32,16,16.0,8.0,2,16,48,8,12.0,256.0
+FP16/BF16,64x64,16,64.0,16.0,2,16,112,4,28.0,128.0
+FP16/BF16,128x128,16,256.0,32.0,2,16,336,1,84.0,64.0
+FP8 F8F6F4 path,32x32,64,16.0,16.0,2,16,64,8,16.0,256.0
+FP8 F8F6F4 path,64x64,64,64.0,32.0,2,16,144,3,36.0,128.0
+FP8 F8F6F4 path,128x128,64,256.0,64.0,2,16,400,1,100.0,64.0
+FP6 packed,32x32,64,16.0,12.0,2,16,56,8,14.0,384.0
+FP6 packed,64x64,64,64.0,24.0,2,16,128,4,32.0,192.0
+FP6 packed,128x128,64,256.0,48.0,2,16,368,1,92.0,96.0
+FP4 packed,32x32,64,16.0,8.0,2,16,48,8,12.0,256.0
+FP4 packed,64x64,64,64.0,16.0,2,16,112,4,28.0,128.0
+FP4 packed,128x128,64,256.0,32.0,2,16,336,1,84.0,64.0

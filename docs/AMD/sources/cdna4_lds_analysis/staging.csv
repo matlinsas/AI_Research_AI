@@ -1,0 +1,4 @@
+﻿wave_tile,workgroup_tile,lds_buffer_k,lds_double_buffer_kB,read_B_per_cu_cycle,stage_write_B_per_cu_cycle
+32x32,64x64,64,32.0,256.0,128.0
+64x64,128x128,64,64.0,128.0,64.0
+128x128,256x256,64,128.0,64.0,32.0

@@ -1,0 +1,1047 @@
+{
+  "date": "2026-11-03",
+  "scope": "MI455X, CDNA5 gfx1250; per WGP, not per hypothetical CU",
+  "sources": {
+    "isa": "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/amd-instinct-cdna5-instruction-set-architecture.pdf",
+    "whitepaper": "https://www.amd.com/content/dam/amd/en/documents/products/technologies/cdna/amd-cdna5-whitepaper.pdf",
+    "sku_peaks": "https://www.amd.com/content/dam/amd/en/documents/products/accelerators/instinct/amd-instinct-mi455x_brochure.pdf",
+    "lds_partition_ports": "https://rocm.blogs.amd.com/software-tools-optimization/mi450-lds-optimization/README.html",
+    "fp8_8cycle_model": "https://rocm.blogs.amd.com/software-tools-optimization/gluon-attention-decode-mi450/README.html"
+  },
+  "hardware": {
+    "simds_per_wgp": 4,
+    "lanes_per_wave": 32,
+    "vgpr_bytes_per_simd": 131072,
+    "vgpr_bytes_per_wgp": 524288,
+    "vgpr_entries_per_lane_per_simd": 1024,
+    "max_waves_per_simd": 16,
+    "vgpr_allocation_granule": 16,
+    "lds_bytes_per_wgp": 327680,
+    "lds_read_peak_B_per_wgp_cycle_distinct_partitions": 512,
+    "lds_read_B_per_wgp_cycle_serialized": 256
+  },
+  "peak_basis": "Normalize brochure peaks by 256 WGP x 2.4 GHz and restore architectural integer granularity. Native instruction dimensions do not imply all variants reach the SKU peak; no derived quotient is presented as measured instruction latency.",
+  "assumptions": [
+    "Dense, target full SKU peak; retained FP32 C/D and in-place accumulation; no inner-loop C/D LDS traffic",
+    "Packed A/B payload; no spills, duplicate lane layouts, scale overhead (except scales table), or bank conflicts",
+    "A/B unique per wave live tile, reused among WMMA subtiles; no cross-wave LDS multicast assumed",
+    "Native row bandwidth is required throughput if that matrix form sustains target peak; not a measured instruction-rate claim",
+    "Register model buffers whole A/B wave panels for one native K-step; 16 illustrative other VGPRs/lane; round to 16; no scale register budget included",
+    "No extra asynchronous write bandwidth is assumed beyond cited read peak; concurrent TDM/DS writes and L0 traffic may contend",
+    "Logical LDS footprint is not partition-aware allocator physical footprint",
+    "1 kB=1024 B"
+  ],
+  "formula": "LDS_read_B_per_WGP_cycle = P/2 * (sA/Nwave + sB/Mwave)",
+  "native": [
+    {
+      "format": "FP16/BF16",
+      "native_m": 16,
+      "native_n": 16,
+      "native_k": 32,
+      "peak_ops_per_wgp_cycle": 8192,
+      "ab_payload_B_per_wave": 2048,
+      "ab_required_B_per_wgp_cycle": 1024.0
+    },
+    {
+      "format": "FP8",
+      "native_m": 16,
+      "native_n": 16,
+      "native_k": 128,
+      "peak_ops_per_wgp_cycle": 32768,
+      "ab_payload_B_per_wave": 4096,
+      "ab_required_B_per_wgp_cycle": 2048.0
+    },
+    {
+      "format": "FP6 packed",
+      "native_m": 16,
+      "native_n": 16,
+      "native_k": 128,
+      "peak_ops_per_wgp_cycle": 32768,
+      "ab_payload_B_per_wave": 3072.0,
+      "ab_required_B_per_wgp_cycle": 1536.0
+    },
+    {
+      "format": "FP4 packed",
+      "native_m": 32,
+      "native_n": 16,
+      "native_k": 128,
+      "peak_ops_per_wgp_cycle": 65536,
+      "ab_payload_B_per_wave": 3072.0,
+      "ab_required_B_per_wgp_cycle": 1536.0
+    },
+    {
+      "format": "INT8",
+      "native_m": 16,
+      "native_n": 16,
+      "native_k": 64,
+      "peak_ops_per_wgp_cycle": 8192,
+      "ab_payload_B_per_wave": 2048,
+      "ab_required_B_per_wgp_cycle": 512.0
+    },
+    {
+      "format": "FP32",
+      "native_m": 16,
+      "native_n": 16,
+      "native_k": 4,
+      "peak_ops_per_wgp_cycle": 512,
+      "ab_payload_B_per_wave": 512,
+      "ab_required_B_per_wgp_cycle": 128.0
+    }
+  ],
+  "wave_tiles": [
+    {
+      "format": "FP16/BF16",
+      "wave_m": 32,
+      "wave_n": 32,
+      "ab_required_B_per_wgp_cycle": 512.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 0.5
+    },
+    {
+      "format": "FP16/BF16",
+      "wave_m": 64,
+      "wave_n": 64,
+      "ab_required_B_per_wgp_cycle": 256.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "FP16/BF16",
+      "wave_m": 64,
+      "wave_n": 128,
+      "ab_required_B_per_wgp_cycle": 192.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "FP16/BF16",
+      "wave_m": 96,
+      "wave_n": 96,
+      "ab_required_B_per_wgp_cycle": 170.66666666666666,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "FP16/BF16",
+      "wave_m": 128,
+      "wave_n": 128,
+      "ab_required_B_per_wgp_cycle": 128.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "FP16/BF16",
+      "wave_m": 160,
+      "wave_n": 160,
+      "ab_required_B_per_wgp_cycle": 102.4,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "FP8",
+      "wave_m": 32,
+      "wave_n": 32,
+      "ab_required_B_per_wgp_cycle": 1024.0,
+      "dual_port_read_only_roof_fraction": 0.5,
+      "serialized_port_read_only_roof_fraction": 0.25
+    },
+    {
+      "format": "FP8",
+      "wave_m": 64,
+      "wave_n": 64,
+      "ab_required_B_per_wgp_cycle": 512.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 0.5
+    },
+    {
+      "format": "FP8",
+      "wave_m": 64,
+      "wave_n": 128,
+      "ab_required_B_per_wgp_cycle": 384.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 0.6666666666666666
+    },
+    {
+      "format": "FP8",
+      "wave_m": 96,
+      "wave_n": 96,
+      "ab_required_B_per_wgp_cycle": 341.3333333333333,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 0.75
+    },
+    {
+      "format": "FP8",
+      "wave_m": 128,
+      "wave_n": 128,
+      "ab_required_B_per_wgp_cycle": 256.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "FP8",
+      "wave_m": 160,
+      "wave_n": 160,
+      "ab_required_B_per_wgp_cycle": 204.8,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "FP6 packed",
+      "wave_m": 32,
+      "wave_n": 32,
+      "ab_required_B_per_wgp_cycle": 768.0,
+      "dual_port_read_only_roof_fraction": 0.6666666666666666,
+      "serialized_port_read_only_roof_fraction": 0.3333333333333333
+    },
+    {
+      "format": "FP6 packed",
+      "wave_m": 64,
+      "wave_n": 64,
+      "ab_required_B_per_wgp_cycle": 384.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 0.6666666666666666
+    },
+    {
+      "format": "FP6 packed",
+      "wave_m": 64,
+      "wave_n": 128,
+      "ab_required_B_per_wgp_cycle": 288.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 0.8888888888888888
+    },
+    {
+      "format": "FP6 packed",
+      "wave_m": 96,
+      "wave_n": 96,
+      "ab_required_B_per_wgp_cycle": 256.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "FP6 packed",
+      "wave_m": 128,
+      "wave_n": 128,
+      "ab_required_B_per_wgp_cycle": 192.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "FP6 packed",
+      "wave_m": 160,
+      "wave_n": 160,
+      "ab_required_B_per_wgp_cycle": 153.60000000000002,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "FP4 packed",
+      "wave_m": 32,
+      "wave_n": 32,
+      "ab_required_B_per_wgp_cycle": 1024.0,
+      "dual_port_read_only_roof_fraction": 0.5,
+      "serialized_port_read_only_roof_fraction": 0.25
+    },
+    {
+      "format": "FP4 packed",
+      "wave_m": 64,
+      "wave_n": 64,
+      "ab_required_B_per_wgp_cycle": 512.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 0.5
+    },
+    {
+      "format": "FP4 packed",
+      "wave_m": 64,
+      "wave_n": 128,
+      "ab_required_B_per_wgp_cycle": 384.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 0.6666666666666666
+    },
+    {
+      "format": "FP4 packed",
+      "wave_m": 96,
+      "wave_n": 96,
+      "ab_required_B_per_wgp_cycle": 341.3333333333333,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 0.75
+    },
+    {
+      "format": "FP4 packed",
+      "wave_m": 128,
+      "wave_n": 128,
+      "ab_required_B_per_wgp_cycle": 256.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "FP4 packed",
+      "wave_m": 160,
+      "wave_n": 160,
+      "ab_required_B_per_wgp_cycle": 204.8,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "INT8",
+      "wave_m": 32,
+      "wave_n": 32,
+      "ab_required_B_per_wgp_cycle": 256.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "INT8",
+      "wave_m": 64,
+      "wave_n": 64,
+      "ab_required_B_per_wgp_cycle": 128.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "INT8",
+      "wave_m": 64,
+      "wave_n": 128,
+      "ab_required_B_per_wgp_cycle": 96.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "INT8",
+      "wave_m": 96,
+      "wave_n": 96,
+      "ab_required_B_per_wgp_cycle": 85.33333333333333,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "INT8",
+      "wave_m": 128,
+      "wave_n": 128,
+      "ab_required_B_per_wgp_cycle": 64.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "INT8",
+      "wave_m": 160,
+      "wave_n": 160,
+      "ab_required_B_per_wgp_cycle": 51.2,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "FP32",
+      "wave_m": 32,
+      "wave_n": 32,
+      "ab_required_B_per_wgp_cycle": 64.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "FP32",
+      "wave_m": 64,
+      "wave_n": 64,
+      "ab_required_B_per_wgp_cycle": 32.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "FP32",
+      "wave_m": 64,
+      "wave_n": 128,
+      "ab_required_B_per_wgp_cycle": 24.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "FP32",
+      "wave_m": 96,
+      "wave_n": 96,
+      "ab_required_B_per_wgp_cycle": 21.333333333333332,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "FP32",
+      "wave_m": 128,
+      "wave_n": 128,
+      "ab_required_B_per_wgp_cycle": 16.0,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    },
+    {
+      "format": "FP32",
+      "wave_m": 160,
+      "wave_n": 160,
+      "ab_required_B_per_wgp_cycle": 12.8,
+      "dual_port_read_only_roof_fraction": 1,
+      "serialized_port_read_only_roof_fraction": 1
+    }
+  ],
+  "registers": [
+    {
+      "format": "FP16/BF16",
+      "wave_tile": "32x32",
+      "live_native_k": 32,
+      "c_regs_per_lane": 32.0,
+      "ab_regs_per_lane_one_buffer": 32.0,
+      "ab_register_buffers": 1,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 80,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 12,
+      "allocated_kB_per_wave": 10.0,
+      "ab_required_B_per_wgp_cycle": 512.0
+    },
+    {
+      "format": "FP16/BF16",
+      "wave_tile": "32x32",
+      "live_native_k": 32,
+      "c_regs_per_lane": 32.0,
+      "ab_regs_per_lane_one_buffer": 32.0,
+      "ab_register_buffers": 2,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 112,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 9,
+      "allocated_kB_per_wave": 14.0,
+      "ab_required_B_per_wgp_cycle": 512.0
+    },
+    {
+      "format": "FP16/BF16",
+      "wave_tile": "64x64",
+      "live_native_k": 32,
+      "c_regs_per_lane": 128.0,
+      "ab_regs_per_lane_one_buffer": 64.0,
+      "ab_register_buffers": 1,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 208,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 4,
+      "allocated_kB_per_wave": 26.0,
+      "ab_required_B_per_wgp_cycle": 256.0
+    },
+    {
+      "format": "FP16/BF16",
+      "wave_tile": "64x64",
+      "live_native_k": 32,
+      "c_regs_per_lane": 128.0,
+      "ab_regs_per_lane_one_buffer": 64.0,
+      "ab_register_buffers": 2,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 272,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 3,
+      "allocated_kB_per_wave": 34.0,
+      "ab_required_B_per_wgp_cycle": 256.0
+    },
+    {
+      "format": "FP16/BF16",
+      "wave_tile": "64x128",
+      "live_native_k": 32,
+      "c_regs_per_lane": 256.0,
+      "ab_regs_per_lane_one_buffer": 96.0,
+      "ab_register_buffers": 1,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 368,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 2,
+      "allocated_kB_per_wave": 46.0,
+      "ab_required_B_per_wgp_cycle": 192.0
+    },
+    {
+      "format": "FP16/BF16",
+      "wave_tile": "64x128",
+      "live_native_k": 32,
+      "c_regs_per_lane": 256.0,
+      "ab_regs_per_lane_one_buffer": 96.0,
+      "ab_register_buffers": 2,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 464,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 2,
+      "allocated_kB_per_wave": 58.0,
+      "ab_required_B_per_wgp_cycle": 192.0
+    },
+    {
+      "format": "FP16/BF16",
+      "wave_tile": "128x128",
+      "live_native_k": 32,
+      "c_regs_per_lane": 512.0,
+      "ab_regs_per_lane_one_buffer": 128.0,
+      "ab_register_buffers": 1,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 656,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 1,
+      "allocated_kB_per_wave": 82.0,
+      "ab_required_B_per_wgp_cycle": 128.0
+    },
+    {
+      "format": "FP16/BF16",
+      "wave_tile": "128x128",
+      "live_native_k": 32,
+      "c_regs_per_lane": 512.0,
+      "ab_regs_per_lane_one_buffer": 128.0,
+      "ab_register_buffers": 2,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 784,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 1,
+      "allocated_kB_per_wave": 98.0,
+      "ab_required_B_per_wgp_cycle": 128.0
+    },
+    {
+      "format": "FP8",
+      "wave_tile": "32x32",
+      "live_native_k": 128,
+      "c_regs_per_lane": 32.0,
+      "ab_regs_per_lane_one_buffer": 64.0,
+      "ab_register_buffers": 1,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 112,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 9,
+      "allocated_kB_per_wave": 14.0,
+      "ab_required_B_per_wgp_cycle": 1024.0
+    },
+    {
+      "format": "FP8",
+      "wave_tile": "32x32",
+      "live_native_k": 128,
+      "c_regs_per_lane": 32.0,
+      "ab_regs_per_lane_one_buffer": 64.0,
+      "ab_register_buffers": 2,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 176,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 5,
+      "allocated_kB_per_wave": 22.0,
+      "ab_required_B_per_wgp_cycle": 1024.0
+    },
+    {
+      "format": "FP8",
+      "wave_tile": "64x64",
+      "live_native_k": 128,
+      "c_regs_per_lane": 128.0,
+      "ab_regs_per_lane_one_buffer": 128.0,
+      "ab_register_buffers": 1,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 272,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 3,
+      "allocated_kB_per_wave": 34.0,
+      "ab_required_B_per_wgp_cycle": 512.0
+    },
+    {
+      "format": "FP8",
+      "wave_tile": "64x64",
+      "live_native_k": 128,
+      "c_regs_per_lane": 128.0,
+      "ab_regs_per_lane_one_buffer": 128.0,
+      "ab_register_buffers": 2,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 400,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 2,
+      "allocated_kB_per_wave": 50.0,
+      "ab_required_B_per_wgp_cycle": 512.0
+    },
+    {
+      "format": "FP8",
+      "wave_tile": "64x128",
+      "live_native_k": 128,
+      "c_regs_per_lane": 256.0,
+      "ab_regs_per_lane_one_buffer": 192.0,
+      "ab_register_buffers": 1,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 464,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 2,
+      "allocated_kB_per_wave": 58.0,
+      "ab_required_B_per_wgp_cycle": 384.0
+    },
+    {
+      "format": "FP8",
+      "wave_tile": "64x128",
+      "live_native_k": 128,
+      "c_regs_per_lane": 256.0,
+      "ab_regs_per_lane_one_buffer": 192.0,
+      "ab_register_buffers": 2,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 656,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 1,
+      "allocated_kB_per_wave": 82.0,
+      "ab_required_B_per_wgp_cycle": 384.0
+    },
+    {
+      "format": "FP8",
+      "wave_tile": "128x128",
+      "live_native_k": 128,
+      "c_regs_per_lane": 512.0,
+      "ab_regs_per_lane_one_buffer": 256.0,
+      "ab_register_buffers": 1,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 784,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 1,
+      "allocated_kB_per_wave": 98.0,
+      "ab_required_B_per_wgp_cycle": 256.0
+    },
+    {
+      "format": "FP8",
+      "wave_tile": "128x128",
+      "live_native_k": 128,
+      "c_regs_per_lane": 512.0,
+      "ab_regs_per_lane_one_buffer": 256.0,
+      "ab_register_buffers": 2,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 1040,
+      "fits_1024": false,
+      "rf_only_max_waves_per_simd": 0,
+      "allocated_kB_per_wave": 130.0,
+      "ab_required_B_per_wgp_cycle": 256.0
+    },
+    {
+      "format": "FP6 packed",
+      "wave_tile": "32x32",
+      "live_native_k": 128,
+      "c_regs_per_lane": 32.0,
+      "ab_regs_per_lane_one_buffer": 48.0,
+      "ab_register_buffers": 1,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 96,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 10,
+      "allocated_kB_per_wave": 12.0,
+      "ab_required_B_per_wgp_cycle": 768.0
+    },
+    {
+      "format": "FP6 packed",
+      "wave_tile": "32x32",
+      "live_native_k": 128,
+      "c_regs_per_lane": 32.0,
+      "ab_regs_per_lane_one_buffer": 48.0,
+      "ab_register_buffers": 2,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 144,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 7,
+      "allocated_kB_per_wave": 18.0,
+      "ab_required_B_per_wgp_cycle": 768.0
+    },
+    {
+      "format": "FP6 packed",
+      "wave_tile": "64x64",
+      "live_native_k": 128,
+      "c_regs_per_lane": 128.0,
+      "ab_regs_per_lane_one_buffer": 96.0,
+      "ab_register_buffers": 1,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 240,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 4,
+      "allocated_kB_per_wave": 30.0,
+      "ab_required_B_per_wgp_cycle": 384.0
+    },
+    {
+      "format": "FP6 packed",
+      "wave_tile": "64x64",
+      "live_native_k": 128,
+      "c_regs_per_lane": 128.0,
+      "ab_regs_per_lane_one_buffer": 96.0,
+      "ab_register_buffers": 2,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 336,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 3,
+      "allocated_kB_per_wave": 42.0,
+      "ab_required_B_per_wgp_cycle": 384.0
+    },
+    {
+      "format": "FP6 packed",
+      "wave_tile": "64x128",
+      "live_native_k": 128,
+      "c_regs_per_lane": 256.0,
+      "ab_regs_per_lane_one_buffer": 144.0,
+      "ab_register_buffers": 1,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 416,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 2,
+      "allocated_kB_per_wave": 52.0,
+      "ab_required_B_per_wgp_cycle": 288.0
+    },
+    {
+      "format": "FP6 packed",
+      "wave_tile": "64x128",
+      "live_native_k": 128,
+      "c_regs_per_lane": 256.0,
+      "ab_regs_per_lane_one_buffer": 144.0,
+      "ab_register_buffers": 2,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 560,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 1,
+      "allocated_kB_per_wave": 70.0,
+      "ab_required_B_per_wgp_cycle": 288.0
+    },
+    {
+      "format": "FP6 packed",
+      "wave_tile": "128x128",
+      "live_native_k": 128,
+      "c_regs_per_lane": 512.0,
+      "ab_regs_per_lane_one_buffer": 192.0,
+      "ab_register_buffers": 1,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 720,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 1,
+      "allocated_kB_per_wave": 90.0,
+      "ab_required_B_per_wgp_cycle": 192.0
+    },
+    {
+      "format": "FP6 packed",
+      "wave_tile": "128x128",
+      "live_native_k": 128,
+      "c_regs_per_lane": 512.0,
+      "ab_regs_per_lane_one_buffer": 192.0,
+      "ab_register_buffers": 2,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 912,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 1,
+      "allocated_kB_per_wave": 114.0,
+      "ab_required_B_per_wgp_cycle": 192.0
+    },
+    {
+      "format": "FP4 packed",
+      "wave_tile": "32x32",
+      "live_native_k": 128,
+      "c_regs_per_lane": 32.0,
+      "ab_regs_per_lane_one_buffer": 32.0,
+      "ab_register_buffers": 1,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 80,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 12,
+      "allocated_kB_per_wave": 10.0,
+      "ab_required_B_per_wgp_cycle": 1024.0
+    },
+    {
+      "format": "FP4 packed",
+      "wave_tile": "32x32",
+      "live_native_k": 128,
+      "c_regs_per_lane": 32.0,
+      "ab_regs_per_lane_one_buffer": 32.0,
+      "ab_register_buffers": 2,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 112,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 9,
+      "allocated_kB_per_wave": 14.0,
+      "ab_required_B_per_wgp_cycle": 1024.0
+    },
+    {
+      "format": "FP4 packed",
+      "wave_tile": "64x64",
+      "live_native_k": 128,
+      "c_regs_per_lane": 128.0,
+      "ab_regs_per_lane_one_buffer": 64.0,
+      "ab_register_buffers": 1,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 208,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 4,
+      "allocated_kB_per_wave": 26.0,
+      "ab_required_B_per_wgp_cycle": 512.0
+    },
+    {
+      "format": "FP4 packed",
+      "wave_tile": "64x64",
+      "live_native_k": 128,
+      "c_regs_per_lane": 128.0,
+      "ab_regs_per_lane_one_buffer": 64.0,
+      "ab_register_buffers": 2,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 272,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 3,
+      "allocated_kB_per_wave": 34.0,
+      "ab_required_B_per_wgp_cycle": 512.0
+    },
+    {
+      "format": "FP4 packed",
+      "wave_tile": "64x128",
+      "live_native_k": 128,
+      "c_regs_per_lane": 256.0,
+      "ab_regs_per_lane_one_buffer": 96.0,
+      "ab_register_buffers": 1,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 368,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 2,
+      "allocated_kB_per_wave": 46.0,
+      "ab_required_B_per_wgp_cycle": 384.0
+    },
+    {
+      "format": "FP4 packed",
+      "wave_tile": "64x128",
+      "live_native_k": 128,
+      "c_regs_per_lane": 256.0,
+      "ab_regs_per_lane_one_buffer": 96.0,
+      "ab_register_buffers": 2,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 464,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 2,
+      "allocated_kB_per_wave": 58.0,
+      "ab_required_B_per_wgp_cycle": 384.0
+    },
+    {
+      "format": "FP4 packed",
+      "wave_tile": "128x128",
+      "live_native_k": 128,
+      "c_regs_per_lane": 512.0,
+      "ab_regs_per_lane_one_buffer": 128.0,
+      "ab_register_buffers": 1,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 656,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 1,
+      "allocated_kB_per_wave": 82.0,
+      "ab_required_B_per_wgp_cycle": 256.0
+    },
+    {
+      "format": "FP4 packed",
+      "wave_tile": "128x128",
+      "live_native_k": 128,
+      "c_regs_per_lane": 512.0,
+      "ab_regs_per_lane_one_buffer": 128.0,
+      "ab_register_buffers": 2,
+      "assumed_other_vgprs_per_lane": 16,
+      "allocated_vgprs_per_lane": 784,
+      "fits_1024": true,
+      "rf_only_max_waves_per_simd": 1,
+      "allocated_kB_per_wave": 98.0,
+      "ab_required_B_per_wgp_cycle": 256.0
+    }
+  ],
+  "scales": [
+    {
+      "format": "MXFP8",
+      "scale_group_elements": 32,
+      "wave_tile": "32x32",
+      "ab_and_scale_required_B_per_wgp_cycle": 1056.0,
+      "dual_port_roof_fraction": 0.48484848484848486,
+      "serialized_port_roof_fraction": 0.24242424242424243
+    },
+    {
+      "format": "MXFP8",
+      "scale_group_elements": 32,
+      "wave_tile": "64x64",
+      "ab_and_scale_required_B_per_wgp_cycle": 528.0,
+      "dual_port_roof_fraction": 0.9696969696969697,
+      "serialized_port_roof_fraction": 0.48484848484848486
+    },
+    {
+      "format": "MXFP8",
+      "scale_group_elements": 32,
+      "wave_tile": "64x128",
+      "ab_and_scale_required_B_per_wgp_cycle": 396.0,
+      "dual_port_roof_fraction": 1,
+      "serialized_port_roof_fraction": 0.6464646464646465
+    },
+    {
+      "format": "MXFP8",
+      "scale_group_elements": 32,
+      "wave_tile": "128x128",
+      "ab_and_scale_required_B_per_wgp_cycle": 264.0,
+      "dual_port_roof_fraction": 1,
+      "serialized_port_roof_fraction": 0.9696969696969697
+    },
+    {
+      "format": "MXFP8",
+      "scale_group_elements": 16,
+      "wave_tile": "32x32",
+      "ab_and_scale_required_B_per_wgp_cycle": 1088.0,
+      "dual_port_roof_fraction": 0.47058823529411764,
+      "serialized_port_roof_fraction": 0.23529411764705882
+    },
+    {
+      "format": "MXFP8",
+      "scale_group_elements": 16,
+      "wave_tile": "64x64",
+      "ab_and_scale_required_B_per_wgp_cycle": 544.0,
+      "dual_port_roof_fraction": 0.9411764705882353,
+      "serialized_port_roof_fraction": 0.47058823529411764
+    },
+    {
+      "format": "MXFP8",
+      "scale_group_elements": 16,
+      "wave_tile": "64x128",
+      "ab_and_scale_required_B_per_wgp_cycle": 408.0,
+      "dual_port_roof_fraction": 1,
+      "serialized_port_roof_fraction": 0.6274509803921569
+    },
+    {
+      "format": "MXFP8",
+      "scale_group_elements": 16,
+      "wave_tile": "128x128",
+      "ab_and_scale_required_B_per_wgp_cycle": 272.0,
+      "dual_port_roof_fraction": 1,
+      "serialized_port_roof_fraction": 0.9411764705882353
+    },
+    {
+      "format": "MXFP6",
+      "scale_group_elements": 32,
+      "wave_tile": "32x32",
+      "ab_and_scale_required_B_per_wgp_cycle": 800.0,
+      "dual_port_roof_fraction": 0.64,
+      "serialized_port_roof_fraction": 0.32
+    },
+    {
+      "format": "MXFP6",
+      "scale_group_elements": 32,
+      "wave_tile": "64x64",
+      "ab_and_scale_required_B_per_wgp_cycle": 400.0,
+      "dual_port_roof_fraction": 1,
+      "serialized_port_roof_fraction": 0.64
+    },
+    {
+      "format": "MXFP6",
+      "scale_group_elements": 32,
+      "wave_tile": "64x128",
+      "ab_and_scale_required_B_per_wgp_cycle": 300.0,
+      "dual_port_roof_fraction": 1,
+      "serialized_port_roof_fraction": 0.8533333333333334
+    },
+    {
+      "format": "MXFP6",
+      "scale_group_elements": 32,
+      "wave_tile": "128x128",
+      "ab_and_scale_required_B_per_wgp_cycle": 200.0,
+      "dual_port_roof_fraction": 1,
+      "serialized_port_roof_fraction": 1
+    },
+    {
+      "format": "MXFP6",
+      "scale_group_elements": 16,
+      "wave_tile": "32x32",
+      "ab_and_scale_required_B_per_wgp_cycle": 832.0,
+      "dual_port_roof_fraction": 0.6153846153846154,
+      "serialized_port_roof_fraction": 0.3076923076923077
+    },
+    {
+      "format": "MXFP6",
+      "scale_group_elements": 16,
+      "wave_tile": "64x64",
+      "ab_and_scale_required_B_per_wgp_cycle": 416.0,
+      "dual_port_roof_fraction": 1,
+      "serialized_port_roof_fraction": 0.6153846153846154
+    },
+    {
+      "format": "MXFP6",
+      "scale_group_elements": 16,
+      "wave_tile": "64x128",
+      "ab_and_scale_required_B_per_wgp_cycle": 312.0,
+      "dual_port_roof_fraction": 1,
+      "serialized_port_roof_fraction": 0.8205128205128205
+    },
+    {
+      "format": "MXFP6",
+      "scale_group_elements": 16,
+      "wave_tile": "128x128",
+      "ab_and_scale_required_B_per_wgp_cycle": 208.0,
+      "dual_port_roof_fraction": 1,
+      "serialized_port_roof_fraction": 1
+    },
+    {
+      "format": "MXFP4",
+      "scale_group_elements": 32,
+      "wave_tile": "32x32",
+      "ab_and_scale_required_B_per_wgp_cycle": 1088.0,
+      "dual_port_roof_fraction": 0.47058823529411764,
+      "serialized_port_roof_fraction": 0.23529411764705882
+    },
+    {
+      "format": "MXFP4",
+      "scale_group_elements": 32,
+      "wave_tile": "64x64",
+      "ab_and_scale_required_B_per_wgp_cycle": 544.0,
+      "dual_port_roof_fraction": 0.9411764705882353,
+      "serialized_port_roof_fraction": 0.47058823529411764
+    },
+    {
+      "format": "MXFP4",
+      "scale_group_elements": 32,
+      "wave_tile": "64x128",
+      "ab_and_scale_required_B_per_wgp_cycle": 408.0,
+      "dual_port_roof_fraction": 1,
+      "serialized_port_roof_fraction": 0.6274509803921569
+    },
+    {
+      "format": "MXFP4",
+      "scale_group_elements": 32,
+      "wave_tile": "128x128",
+      "ab_and_scale_required_B_per_wgp_cycle": 272.0,
+      "dual_port_roof_fraction": 1,
+      "serialized_port_roof_fraction": 0.9411764705882353
+    },
+    {
+      "format": "MXFP4",
+      "scale_group_elements": 16,
+      "wave_tile": "32x32",
+      "ab_and_scale_required_B_per_wgp_cycle": 1152.0,
+      "dual_port_roof_fraction": 0.4444444444444444,
+      "serialized_port_roof_fraction": 0.2222222222222222
+    },
+    {
+      "format": "MXFP4",
+      "scale_group_elements": 16,
+      "wave_tile": "64x64",
+      "ab_and_scale_required_B_per_wgp_cycle": 576.0,
+      "dual_port_roof_fraction": 0.8888888888888888,
+      "serialized_port_roof_fraction": 0.4444444444444444
+    },
+    {
+      "format": "MXFP4",
+      "scale_group_elements": 16,
+      "wave_tile": "64x128",
+      "ab_and_scale_required_B_per_wgp_cycle": 432.0,
+      "dual_port_roof_fraction": 1,
+      "serialized_port_roof_fraction": 0.5925925925925926
+    },
+    {
+      "format": "MXFP4",
+      "scale_group_elements": 16,
+      "wave_tile": "128x128",
+      "ab_and_scale_required_B_per_wgp_cycle": 288.0,
+      "dual_port_roof_fraction": 1,
+      "serialized_port_roof_fraction": 0.8888888888888888
+    }
+  ],
+  "staging": [
+    {
+      "format": "FP8",
+      "wave_tile": "64x64",
+      "workgroup_tile": "128x128",
+      "lds_buffer_k": 128,
+      "logical_double_buffer_kB": 64.0,
+      "ab_read_B_per_wgp_cycle": 512.0,
+      "stage_write_B_per_wgp_cycle": 256.0,
+      "physical_partition_padding_included": false
+    },
+    {
+      "format": "FP8",
+      "wave_tile": "128x128",
+      "workgroup_tile": "256x256",
+      "lds_buffer_k": 128,
+      "logical_double_buffer_kB": 128.0,
+      "ab_read_B_per_wgp_cycle": 256.0,
+      "stage_write_B_per_wgp_cycle": 128.0,
+      "physical_partition_padding_included": false
+    }
+  ]
+}
