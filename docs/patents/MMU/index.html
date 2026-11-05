@@ -12,7 +12,7 @@ main{max-width:960px;margin:auto;padding:64px 28px 48px}a{color:var(--accent);te
 .eyebrow{font-size:12px;font-weight:700;letter-spacing:.18em;color:var(--accent)}h1{font-size:clamp(30px,5vw,44px);line-height:1.25;margin:14px 0 18px}header p{color:var(--muted);max-width:660px;margin:0}
 .bar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:42px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--line)}.bar h2{font-size:17px;margin:0}.count{color:var(--muted);font-size:13px}
 .reports{list-style:none;margin:0;padding:0;display:grid;gap:16px}.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px;box-shadow:0 8px 30px #12384806}
-.tags{display:flex;flex-wrap:wrap;gap:8px;font-size:12px}.tags span{padding:3px 10px;background:#edf5f3;border-radius:20px;color:#21675d}.card h3{font-size:24px;line-height:1.5;margin:16px 0 10px}.card h3 a{color:var(--ink);text-decoration:none}.card h3 a:hover{text-decoration:underline}.card p{color:var(--muted);margin:0 0 18px}.facts{font-size:13px;color:var(--muted);margin-bottom:22px}
+.tags{display:flex;flex-wrap:wrap;gap:8px;font-size:12px}.tags span{padding:3px 10px;background:#edf5f3;border-radius:20px;color:#21675d}.card h3{font-size:24px;line-height:1.5;margin:16px 0 10px}.card h3 a{color:var(--ink);text-decoration:none}.card h3 a:hover{text-decoration:underline}.card p{color:#536b7b;margin:0 0 18px}.facts{font-size:13px;color:var(--muted);margin-bottom:22px}
 .read{display:inline-block;background:var(--accent);color:#fff;border-radius:8px;padding:10px 18px;text-decoration:none;font-weight:600}.read:hover{background:#055a56}
 footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 @media(max-width:560px){main{padding:36px 18px}.card{padding:22px}.card h3{font-size:21px}.bar{margin-top:30px}}
@@ -26,7 +26,7 @@ footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-si
 <p>围绕内存管理单元，整理 GPU 地址翻译、TLB 管理、显存分区和多裸片协作相关专利。每篇报告拥有独立页面。</p>
 </header>
 <section aria-labelledby="reports-title">
-<div class="bar"><h2 id="reports-title">专利报告</h2><span class="count">2 篇</span></div>
+<div class="bar"><h2 id="reports-title">专利报告</h2><span class="count">3 篇</span></div>
 <ul class="reports">
 <li><article class="card">
 <div class="tags"><span>NVIDIA</span><span>US12524350B2</span><span>Multi-Dielet MMU</span></div>
@@ -41,6 +41,13 @@ footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-si
 <p>对照四篇 NVIDIA 专利，拆解 PPU 与 SMC 分区、全局交织边界、uGPU 本地访存，以及片上 scratchpad 的动态 bank 分组。</p>
 <div class="facts">4 篇专利 · 29 张原图 · 2 个交互式地址映射示例</div>
 <a class="read" href="gpgpu_mig_address_isolation_locality.html">阅读技术报告 <span aria-hidden="true">→</span></a>
+</article></li>
+<li><article class="card">
+<div class="tags"><span>NVIDIA</span><span>MIG</span><span>地址隔离</span><span>Locality</span><span>Kimi 整理</span></div>
+<h3><a href="GPGPU_MIG_专利技术分析_kimi.html">GPGPU MIG / 地址隔离与 Locality 四篇专利技术分析</a></h3>
+<p>系统整理 US20210157651A1（MIG 系统）、US10909033B1（高效内存分区映射）、US20250078199A1（uGPU Localized Mode）、US20260227917A1（动态 Bank Cluster）的整体与细节，含横向对比表与机制栈分层分析。</p>
+<div class="facts">4 篇专利 · 30 张原始附图 · 7 张自绘 SVG 图解</div>
+<a class="read" href="GPGPU_MIG_专利技术分析_kimi.html">阅读技术报告 <span aria-hidden="true">→</span></a>
 </article></li>
 </ul>
 </section>

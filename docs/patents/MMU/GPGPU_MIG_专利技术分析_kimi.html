@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPGPU 内存地址隔离与 Locality —— 四篇 NVIDIA 专利技术解读</title>
+<style>
+  :root{
+    --ink:#1a2332; --sub:#5a6b80; --accent:#76b900; --accent2:#2b6cb0;
+    --bg:#f6f8fa; --card:#ffffff; --line:#dfe5ec; --warn:#c05621;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.85;}
+  header{background:linear-gradient(135deg,#0c1a2b 0%,#16324f 60%,#1f4e79 100%);
+         color:#fff;padding:56px 24px 44px;text-align:center;}
+  header h1{font-size:30px;margin:0 0 14px;letter-spacing:1px;}
+  header p{max-width:960px;margin:6px auto;color:#c9d8e8;font-size:15px;}
+  .badges{margin-top:18px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}
+  .badge{background:rgba(118,185,0,.16);border:1px solid rgba(118,185,0,.55);
+         color:#b8e356;border-radius:20px;padding:4px 16px;font-size:13px;}
+  main{max-width:1080px;margin:0 auto;padding:32px 20px 80px;}
+  nav.toc{background:var(--card);border:1px solid var(--line);border-radius:12px;
+          padding:22px 30px;margin-bottom:36px;}
+  nav.toc h2{margin:0 0 10px;font-size:18px;}
+  nav.toc ol{margin:0;padding-left:22px;}
+  nav.toc li{margin:4px 0;font-size:15px;}
+  nav.toc a{color:var(--accent2);text-decoration:none;}
+  nav.toc a:hover{text-decoration:underline;}
+  h2{font-size:24px;border-left:6px solid var(--accent);padding-left:14px;margin:56px 0 18px;}
+  h3{font-size:19px;color:#16324f;margin:34px 0 12px;border-bottom:1px dashed var(--line);padding-bottom:6px;}
+  h4{font-size:16px;color:#1f4e79;margin:22px 0 8px;}
+  p{margin:10px 0;font-size:15px;}
+  ul,ol{font-size:15px;}
+  li{margin:5px 0;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+        padding:22px 26px;margin:18px 0;box-shadow:0 1px 3px rgba(20,40,70,.05);}
+  .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px 24px;
+        background:#eef3f8;border-radius:10px;padding:14px 18px;font-size:13.5px;margin:14px 0;}
+  .meta b{color:#16324f;}
+  .fig{text-align:center;margin:22px 0;background:#fff;border:1px solid var(--line);
+       border-radius:10px;padding:16px;}
+  .fig img{max-width:100%;height:auto;border:1px solid #eee;}
+  .fig .cap{font-size:13px;color:var(--sub);margin-top:10px;}
+  .fig .cap b{color:#16324f;}
+  table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px;background:#fff;}
+  th{background:#16324f;color:#fff;padding:9px 12px;text-align:left;font-weight:600;}
+  td{border:1px solid var(--line);padding:8px 12px;vertical-align:top;}
+  tr:nth-child(even) td{background:#f4f7fa;}
+  code,kbd{background:#eef1f5;border-radius:4px;padding:1px 6px;font-family:Consolas,Menlo,monospace;font-size:13px;color:#b03a2e;}
+  .key{background:#f3f9e8;border-left:4px solid var(--accent);padding:12px 18px;border-radius:0 8px 8px 0;margin:16px 0;font-size:14.5px;}
+  .warn{background:#fdf3e7;border-left:4px solid var(--warn);padding:12px 18px;border-radius:0 8px 8px 0;margin:16px 0;font-size:14.5px;}
+  .svgbox{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px;margin:22px 0;text-align:center;}
+  .svgbox .cap{font-size:13px;color:var(--sub);margin-top:8px;}
+  .svgbox svg{max-width:100%;height:auto;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media(max-width:860px){.grid2{grid-template-columns:1fr;}}
+  footer{text-align:center;color:var(--sub);font-size:13px;padding:30px 0 10px;border-top:1px solid var(--line);margin-top:40px;}
+  .tag{display:inline-block;background:#e8f0fa;color:#1f4e79;border-radius:4px;font-size:12px;padding:1px 8px;margin-right:6px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>GPGPU 内存地址隔离与地址 Locality 技术解读</h1>
+  <p>四篇 NVIDIA 专利的系统化整理与对比分析 —— 从 MIG 多实例硬隔离，到统一内存的 uGPU 本地化映射，再到片上 Scratchpad 的动态 Bank Cluster</p>
+  <div class="badges">
+    <span class="badge">US20210157651A1 · MIG 多实例分区</span>
+    <span class="badge">US10909033B1 · 内存分区地址映射</span>
+    <span class="badge">US20250078199A1 · 统一内存 Localized Mode</span>
+    <span class="badge">US20260227917A1 · 动态 Memory Bank Cluster</span>
+  </div>
+</header>
+
+<main>
+
+<nav class="toc">
+  <h2>目录</h2>
+  <ol>
+    <li><a href="#sec0">总览：四篇专利的定位与关系</a></li>
+    <li><a href="#sec1">专利一：US20210157651A1 —— 虚拟化环境下把一颗处理器配置成多颗独立处理器（MIG）</a></li>
+    <li><a href="#sec2">专利二：US10909033B1 —— 高效内存分区（Strided/Partition 混合地址映射）</a></li>
+    <li><a href="#sec3">专利三：US20250078199A1 —— 统一内存 GPU 的 Localized Mode（uGPU 地址局部性）</a></li>
+    <li><a href="#sec4">专利四：US20260227917A1 —— 计算系统中动态配置内存（Bank Cluster）</a></li>
+    <li><a href="#sec5">横向对比与综合分析</a></li>
+  </ol>
+</nav>
+
+<!-- ======================= 总览 ======================= -->
+<h2 id="sec0">0. 总览：四篇专利的定位与关系</h2>
+
+<div class="card">
+<p>这四篇专利全部来自 NVIDIA，时间跨度 2019–2025（申请日），共同回答了同一个大问题的不同侧面：<b>当一颗 GPGPU 的算力和显存被切分、被共享、被跨 die 扩展时，地址应该如何映射，才能既保证隔离（isolation）、又保证局部性（locality）、还兼顾利用率与功耗？</b></p>
+<ul>
+  <li><b>US10909033B1</b>（2019 年申请，2021 年授权，发明人 Kun Fang、James Van Dyke）解决的是<b>地址映射的数学基础</b>：strided（跨全部内存器件条带化）与 partition（垂直切分给不同租户）两类内存空间如何共存于同一套物理 DRAM 上，且边界干净、浪费最小。它是 MIG 内存隔离的底层使能技术。</li>
+  <li><b>US20210157651A1</b>（2021 年公开，Duluk 等 15 人）是 <b>MIG（Multi-Instance GPU）的系统专利</b>：把 PPU 切成若干 PPU Partition（slice 级硬分区），每个分区再划分 SMC Engine，DRAM 被划成 top / partitionable / bottom 三段，由 MMU + AMAP 完成带 swizzle 的地址隔离，配合 VASID 本地化实现故障隔离与迁移。</li>
+  <li><b>US20250078199A1</b>（2023 年申请，Wish Gandhi、Ze Long、Kun Fang）面向<b>多 die（uGPU）统一内存 GPU</b>：在保留统一虚拟寻址灵活性的同时，允许应用通过 PTE 里的一个 mode bit 选择 localized 映射，把数据和执行"绑"在同一个 uGPU 上，消除跨 die（C2C）访问的高延迟与 L2 双份缓存。这是<b>地址 locality</b> 的直接优化。</li>
+  <li><b>US20260227917A1</b>（2025 年申请，Venkatesan、Keller、Tambe）把同样的思路推进到<b>片上 SRAM（global scratchpad）</b>：读写请求自带 bank cluster size（1/2/4），地址按 cluster 内交织、cluster 间顺序的规则换算物理 bank；空闲 bank 可进入 retention/idle 低功耗态。Locality 在这里同时服务于<b>带宽聚合与功耗</b>。</li>
+</ul>
+</div>
+
+<div class="svgbox">
+<svg viewBox="0 0 1000 330" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI,Microsoft YaHei,sans-serif">
+  <defs>
+    <marker id="arw" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#5a6b80"/>
+    </marker>
+  </defs>
+  <!-- 时间轴 -->
+  <line x1="60" y1="270" x2="950" y2="270" stroke="#5a6b80" stroke-width="2" marker-end="url(#arw)"/>
+  <text x="955" y="274" font-size="13" fill="#5a6b80">申请时间</text>
+
+  <!-- 节点1 -->
+  <circle cx="150" cy="270" r="7" fill="#2b6cb0"/>
+  <rect x="60" y="150" width="180" height="100" rx="10" fill="#eaf1fb" stroke="#2b6cb0"/>
+  <text x="150" y="172" font-size="13.5" font-weight="700" fill="#16324f" text-anchor="middle">US10909033B1</text>
+  <text x="150" y="192" font-size="12" fill="#33475c" text-anchor="middle">内存分区地址映射</text>
+  <text x="150" y="209" font-size="11.5" fill="#5a6b80" text-anchor="middle">strided + partition 共存</text>
+  <text x="150" y="226" font-size="11.5" fill="#5a6b80" text-anchor="middle">common boundary / 零头借用</text>
+  <text x="150" y="244" font-size="11" fill="#76a40b" text-anchor="middle">主题：隔离的映射数学</text>
+  <text x="150" y="292" font-size="12.5" fill="#33475c" text-anchor="middle">2019.08 申请</text>
+  <text x="150" y="308" font-size="11.5" fill="#8895a7" text-anchor="middle">DRAM / L2 slice 层</text>
+
+  <!-- 节点2 -->
+  <circle cx="400" cy="270" r="7" fill="#76b900"/>
+  <rect x="300" y="130" width="200" height="120" rx="10" fill="#f3f9e8" stroke="#76b900" stroke-width="1.6"/>
+  <text x="400" y="152" font-size="13.5" font-weight="700" fill="#16324f" text-anchor="middle">US20210157651A1</text>
+  <text x="400" y="172" font-size="12" fill="#33475c" text-anchor="middle">MIG 多实例 GPU</text>
+  <text x="400" y="189" font-size="11.5" fill="#5a6b80" text-anchor="middle">PPU slice / SMC engine 硬分区</text>
+  <text x="400" y="206" font-size="11.5" fill="#5a6b80" text-anchor="middle">DRAM 三段 + AMAP swizzle 隔离</text>
+  <text x="400" y="223" font-size="11.5" fill="#5a6b80" text-anchor="middle">VASID 本地化 / 故障隔离</text>
+  <text x="400" y="241" font-size="11" fill="#76a40b" text-anchor="middle">主题：系统级地址隔离</text>
+  <text x="400" y="292" font-size="12.5" fill="#33475c" text-anchor="middle">2021.02 申请（CIP 2019.09）</text>
+  <text x="400" y="308" font-size="11.5" fill="#8895a7" text-anchor="middle">整颗 PPU / 虚拟化层</text>
+
+  <!-- 节点3 -->
+  <circle cx="650" cy="270" r="7" fill="#c05621"/>
+  <rect x="550" y="130" width="200" height="120" rx="10" fill="#fdf3e7" stroke="#c05621" stroke-width="1.6"/>
+  <text x="650" y="152" font-size="13.5" font-weight="700" fill="#16324f" text-anchor="middle">US20250078199A1</text>
+  <text x="650" y="172" font-size="12" fill="#33475c" text-anchor="middle">统一内存 GPU Localized Mode</text>
+  <text x="650" y="189" font-size="11.5" fill="#5a6b80" text-anchor="middle">多 die uGPU / C2C 互联</text>
+  <text x="650" y="206" font-size="11.5" fill="#5a6b80" text-anchor="middle">PTE mode bit 切换 stride/localized</text>
+  <text x="650" y="223" font-size="11.5" fill="#5a6b80" text-anchor="middle">GPC affinity + 数据同侧绑定</text>
+  <text x="650" y="241" font-size="11" fill="#c05621" text-anchor="middle">主题：跨 die 地址 locality</text>
+  <text x="650" y="292" font-size="12.5" fill="#33475c" text-anchor="middle">2023.08 申请</text>
+  <text x="650" y="308" font-size="11.5" fill="#8895a7" text-anchor="middle">uGPU / HBM 层</text>
+
+  <!-- 节点4 -->
+  <circle cx="880" cy="270" r="7" fill="#805ad5"/>
+  <rect x="790" y="130" width="180" height="120" rx="10" fill="#f3effc" stroke="#805ad5" stroke-width="1.6"/>
+  <text x="880" y="152" font-size="13.5" font-weight="700" fill="#16324f" text-anchor="middle">US20260227917A1</text>
+  <text x="880" y="172" font-size="12" fill="#33475c" text-anchor="middle">动态 Memory Bank Cluster</text>
+  <text x="880" y="189" font-size="11.5" fill="#5a6b80" text-anchor="middle">scratchpad bank 按请求聚簇</text>
+  <text x="880" y="206" font-size="11.5" fill="#5a6b80" text-anchor="middle">簇内交织 / 簇间顺序</text>
+  <text x="880" y="223" font-size="11.5" fill="#5a6b80" text-anchor="middle">空闲 bank 进低功耗态</text>
+  <text x="880" y="241" font-size="11" fill="#805ad5" text-anchor="middle">主题：bank 级 locality + 功耗</text>
+  <text x="880" y="292" font-size="12.5" fill="#33475c" text-anchor="middle">2025.01 申请</text>
+  <text x="880" y="308" font-size="11.5" fill="#8895a7" text-anchor="middle">片上 SRAM bank 层</text>
+
+  <!-- 演进箭头注释 -->
+  <path d="M240,120 C330,90 480,90 545,115" fill="none" stroke="#9aa8b8" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arw)"/>
+  <text x="392" y="88" font-size="12" fill="#5a6b80" text-anchor="middle">映射数学 → 系统隔离</text>
+  <path d="M500,112 C560,92 595,100 548,116" fill="none" stroke="none"/>
+  <path d="M502,118 C560,96 600,96 548,118" fill="none" stroke="none"/>
+  <path d="M505,110 C570,86 610,96 548,112" fill="none" stroke="none"/>
+  <path d="M500,112 C570,86 545,108 545,108" fill="none" stroke="none"/>
+  <path d="M752,120 C800,96 830,100 792,118" fill="none" stroke="none"/>
+  <path d="M500,110 C560,88 610,92 546,112" fill="none" stroke="none"/>
+  <path d="M505,105 C575,82 615,88 548,108" fill="none" stroke="none"/>
+  <path d="M502,106 C570,84 610,90 547,110" fill="none" stroke="none"/>
+  <path d="M240,105 C500,40 700,45 786,105" fill="none" stroke="#9aa8b8" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arw)"/>
+  <text x="512" y="52" font-size="12" fill="#5a6b80" text-anchor="middle">硬隔离 → 软件可选择的 locality → 动态、细粒度、按请求生效</text>
+</svg>
+<div class="cap"><b>图 0-1（自绘）</b>：四篇专利的时间线与主题定位。控制粒度从"hypervisor 静态配置"演进为"应用/编译器按次指定"，作用层级从整卡 DRAM 下沉到片上 SRAM bank。</div>
+</div>
+
+<div class="key"><b>一条贯穿线索：</b>四篇专利都在用同一个基本手法 —— <b>在地址映射级（而不是物理结构级）改变数据的落点</b>。crossbar、HBM、bank 阵列本身都不需要改动；改动的是 MMU/AMAP/译码器里的映射函数，外加一个由软件设置的"模式"（swizID、mode bit、bank cluster size）。这使得隔离与 locality 都可以按需、按区域、按请求开关。</div>
+
+<!-- ======================= 专利一 MIG ======================= -->
+<h2 id="sec1">1. US20210157651A1：虚拟化环境下把一颗处理器配置成多颗独立处理器（MIG 系统专利）</h2>
+
+<div class="meta">
+  <div><b>公开号</b>：US 2021/0157651 A1</div>
+  <div><b>公开日</b>：2021-05-27</div>
+  <div><b>申请日</b>：2021-02-01（16/562,359 的部分继续案，2019-09-05）</div>
+  <div><b>申请人</b>：NVIDIA</div>
+  <div><b>发明人</b>：Duluk、Palmer、Evans、Singh、Duncan、Gandhi、Shah 等 15 人</div>
+  <div><b>对应产品</b>：MIG（Multi-Instance GPU，Ampere A100 起）</div>
+</div>
+
+<h3>1.1 要解决的问题</h3>
+<div class="card">
+<p>传统 GPU 同一时刻只能按<b>一个</b>处理上下文（processing context）配置。多个 CPU 进程要同时卸载任务到 GPU 时，只能靠"time-slice + context switch"或者在一个 context 里派生 subcontext。这带来三个问题：</p>
+<ol>
+  <li><b>公平性</b>：不同 subcontext 的 CPU 进程会不公平地挤占本应共享的 GPU 资源，一个进程可能拖死另一个；</li>
+  <li><b>隔离性</b>：subcontext 之间缺乏硬件级隔离，一个出错会波及其余；</li>
+  <li><b>多租户</b>：云场景下多个租户（VM / 容器）无法真正独享 GPU 的一部分。</li>
+</ol>
+<p>这篇专利给出的答案是：<b>把 PPU 在硬件边界上切成多个"fractionalized PPU"（PPU Partition），每个分区从功能上看就是一颗小 GPU</b>，可独立复位、独立报错、独立调度，互不干扰。</p>
+</div>
+
+<h3>1.2 核心概念体系</h3>
+<div class="card">
+<table>
+<tr><th>概念</th><th>含义</th><th>类比/备注</th></tr>
+<tr><td><b>PPU slice 610</b></td><td>最小切分单元：1 个 sys pipe（含 PBDMA、FECS、前端、SKED、CWD）+ 1 个 GPC + 一组 L2 slice + 对应 DRAM 部分</td><td>大致对应 MIG 的 "GPU slice"</td></tr>
+<tr><td><b>PPU partition 600</b></td><td>若干 slice 的硬分区，功能上等价于整颗 PPU；分区间功能隔离、可独立复位</td><td>MIG 的 "GPU Instance (GI)"</td></tr>
+<tr><td><b>SMC engine 700</b></td><td>分区内部的"同时多上下文"引擎；每个 SMC engine 任一时刻跑一个 context，多个 SMC engine 并行跑多个 context</td><td>GI 内的 "Compute Instance (CI)" 的执行底座</td></tr>
+<tr><td><b>PPU memory partition 710</b></td><td>属于某分区的 L2 slice 组 + 对应 DRAM portion 822</td><td>内存侧隔离单元</td></tr>
+<tr><td><b>VEID / VASID</b></td><td>虚拟引擎 ID / 虚拟地址空间 ID；本地编号（从 0 开始）映射到全局编号，便于迁移</td><td>见 1.5 节</td></tr>
+<tr><td><b>GFID</b></td><td>GPU Function ID（PF+VF 位），SR-IOV 语义，用于把错误路由到对应 VM 的 guest OS</td><td>—</td></tr>
+<tr><td><b>swizID</b></td><td>"swizzle identifier"，一串位图，1 个 bit 对应一条边界选项（boundary option），置位=激活该边界</td><td>分区的"配置指纹"，见 1.4 节</td></tr>
+</table>
+</div>
+
+<div class="svgbox">
+<svg viewBox="0 0 1000 430" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI,Microsoft YaHei,sans-serif">
+  <defs><marker id="arw2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5a6b80"/></marker></defs>
+  <rect x="20" y="15" width="960" height="400" rx="12" fill="#f7fafc" stroke="#9aa8b8" stroke-dasharray="6 4"/>
+  <text x="500" y="40" font-size="15" font-weight="700" fill="#16324f" text-anchor="middle">PPU 200（整颗 GPU：8 slices / 8 GPC / 96 L2 slices / DRAM）</text>
+
+  <!-- Partition 600(0) -->
+  <rect x="45" y="60" width="560" height="345" rx="10" fill="#eaf1fb" stroke="#2b6cb0" stroke-width="1.6"/>
+  <text x="325" y="84" font-size="13.5" font-weight="700" fill="#2b6cb0" text-anchor="middle">PPU Partition 600(0)（4 slices，1/2 资源与带宽）</text>
+  <!-- SMC 0 -->
+  <rect x="65" y="100" width="250" height="185" rx="8" fill="#fff" stroke="#2b6cb0"/>
+  <text x="190" y="122" font-size="12.5" font-weight="700" fill="#16324f" text-anchor="middle">SMC Engine 700(0)</text>
+  <text x="190" y="141" font-size="11.5" fill="#5a6b80" text-anchor="middle">1 sys pipe + 2 GPC（slice 0+1 的计算）</text>
+  <text x="190" y="159" font-size="11.5" fill="#5a6b80" text-anchor="middle">L2 slices 覆盖 slice 0–3</text>
+  <rect x="85" y="172" width="210" height="34" rx="5" fill="#f3f9e8" stroke="#76b900"/>
+  <text x="190" y="194" font-size="11.5" fill="#4a6b00" text-anchor="middle">context 1400(0)（含 subcontext 1410）</text>
+  <text x="190" y="228" font-size="11.5" fill="#5a6b80" text-anchor="middle">VEID 702(0)：本地 0..15 → 全局 0..15</text>
+  <text x="190" y="246" font-size="11.5" fill="#5a6b80" text-anchor="middle">可独立复位 / 独立报 fault</text>
+  <text x="190" y="272" font-size="11" fill="#8895a7" text-anchor="middle">VM0（GFID → guest OS）</text>
+  <!-- SMC 2 -->
+  <rect x="335" y="100" width="250" height="185" rx="8" fill="#fff" stroke="#2b6cb0"/>
+  <text x="460" y="122" font-size="12.5" font-weight="700" fill="#16324f" text-anchor="middle">SMC Engine 700(2)</text>
+  <text x="460" y="141" font-size="11.5" fill="#5a6b80" text-anchor="middle">1 sys pipe + 2 GPC（slice 2+3）</text>
+  <text x="460" y="159" font-size="11.5" fill="#5a6b80" text-anchor="middle">与 700(0) 共享本分区 L2</text>
+  <rect x="355" y="172" width="210" height="34" rx="5" fill="#f3f9e8" stroke="#76b900"/>
+  <text x="460" y="194" font-size="11.5" fill="#4a6b00" text-anchor="middle">context 1400(1)</text>
+  <text x="460" y="228" font-size="11.5" fill="#5a6b80" text-anchor="middle">VEID 702(1)：本地 0..15 → 全局 16..31</text>
+  <text x="460" y="246" font-size="11.5" fill="#5a6b80" text-anchor="middle">context switch 与 700(0) 异步独立</text>
+  <!-- memory partition -->
+  <rect x="65" y="300" width="520" height="88" rx="8" fill="#fff" stroke="#2b6cb0"/>
+  <text x="325" y="324" font-size="12.5" font-weight="700" fill="#16324f" text-anchor="middle">PPU Memory Partition 710(0)</text>
+  <text x="325" y="345" font-size="11.5" fill="#5a6b80" text-anchor="middle">本分区全部 L2 slices + DRAM portion 822(0)（partitionable section 的 1/2）</text>
+  <text x="325" y="364" font-size="11.5" fill="#5a6b80" text-anchor="middle">内部按页细分给各 SMC engine / context；throttle counter 840 按份额限带宽</text>
+
+  <!-- Partition 600(4) -->
+  <rect x="625" y="60" width="180" height="160" rx="10" fill="#f3f9e8" stroke="#76b900" stroke-width="1.6"/>
+  <text x="715" y="84" font-size="12.5" font-weight="700" fill="#4a6b00" text-anchor="middle">Partition 600(4)</text>
+  <text x="715" y="104" font-size="11.5" fill="#5a6b80" text-anchor="middle">2 slices（1/4 资源）</text>
+  <rect x="640" y="116" width="150" height="52" rx="6" fill="#fff" stroke="#76b900"/>
+  <text x="715" y="137" font-size="11.5" fill="#16324f" text-anchor="middle">SMC Engine 700(4)</text>
+  <text x="715" y="155" font-size="11" fill="#5a6b80" text-anchor="middle">VEID 0..15 → 全局 32..47</text>
+  <rect x="640" y="176" width="150" height="34" rx="6" fill="#fff" stroke="#76b900"/>
+  <text x="715" y="197" font-size="11" fill="#5a6b80" text-anchor="middle">Mem Partition 710(4)</text>
+
+  <!-- Partition 600(6)/(7) -->
+  <rect x="625" y="238" width="165" height="80" rx="10" fill="#fdf3e7" stroke="#c05621"/>
+  <text x="707" y="262" font-size="12" font-weight="700" fill="#c05621" text-anchor="middle">Partition 600(6)</text>
+  <text x="707" y="282" font-size="11" fill="#5a6b80" text-anchor="middle">1 slice，SMC 700(6)</text>
+  <text x="707" y="300" font-size="11" fill="#5a6b80" text-anchor="middle">VEID 0..7 → 48..55</text>
+  <rect x="810" y="238" width="160" height="80" rx="10" fill="#fdf3e7" stroke="#c05621"/>
+  <text x="890" y="262" font-size="12" font-weight="700" fill="#c05621" text-anchor="middle">Partition 600(7)</text>
+  <text x="890" y="282" font-size="11" fill="#5a6b80" text-anchor="middle">1 slice，SMC 700(7)</text>
+  <text x="890" y="300" font-size="11" fill="#5a6b80" text-anchor="middle">VEID 0..7 → 56..63</text>
+
+  <text x="880" y="350" font-size="11.5" fill="#8895a7" text-anchor="middle">分区互不感知，</text>
+  <text x="880" y="367" font-size="11.5" fill="#8895a7" text-anchor="middle">fault/reset 互不影响</text>
+</svg>
+<div class="cap"><b>图 1-1（自绘，依据专利 FIG. 6/7/15）</b>：两级分区 —— PPU Partition 是 slice 级硬分区（对应 MIG GPU Instance）；SMC Engine 在分区内支撑多 context 并行；VEID 全局 0–63 按比例切给各引擎，但每个引擎内部看到的都是从 0 开始的本地编号。</div>
+</div>
+
+<div class="fig">
+  <img src="figs/web/mig_fig07.png" alt="FIG 7">
+  <div class="cap"><b>原图 FIG. 7</b>：PPU Partition 600(0)/(4)/(6)/(7) 与各自的 SMC Engine、VEID、PPU Memory Partition 710 及 DRAM 272 的对应关系。注意 600(0) 的两个 SMC engine 里 sys pipe 230(1)/230(3) 被划掉（每个 SMC engine 只需一个 sys pipe），但 L2 slice 覆盖 4 个 slice。</div>
+</div>
+
+<h3>1.3 内存侧：DRAM 三段式划分与地址空间布局（地址隔离的核心）</h3>
+<div class="card">
+<p>DRAM 272（所有 slice 的显存总和）被划分为三段：</p>
+<ul>
+  <li><b>Top section 810</b> 与 <b>Bottom section 830</b>：从所有 DRAM 的顶部/底部"削"出来的 carve-out，供 hypervisor、device driver 等系统级实体使用（如 hypervisor 私有数据、安全数据），普通分区不可见；</li>
+  <li><b>Partitionable section 820</b>：中段，才是分给各 PPU partition 的部分，内部再切成 DRAM portion 822(i)，每个对应一个 memory partition 710(i)。</li>
+</ul>
+<p>对应地，软件可见的一维系统物理地址空间（<b>1D SPA space 850</b>）被分为 top addresses 852、partitionable addresses 854（细分为各 address region 856(i)）、bottom addresses 858。其中：</p>
+<ul>
+  <li>top/bottom 地址被 <b>swizzle 到全部 L2 slice</b> 上（伪随机交织），均衡占用所有 slice 的顶部/底部区域；</li>
+  <li>partitionable 地址中，region 856(i) 只映射进分区 i 的 L2 slice 组和 DRAM portion —— <b>SMC engine 只能访问本分区的 address region，从硬件上不可能越界</b>。</li>
+</ul>
+<p>容量由三个参数确定：M（DRAM 总量）、F（每个 L2 slice 属于 partitionable 段的大小）、W（每个 slice 属于 bottom 段的大小），T/P/B 由 M/F/W 推出。</p>
+</div>
+
+<div class="grid2">
+<div class="fig"><img src="figs/web/mig_fig08a.png" alt="FIG 8A"><div class="cap"><b>原图 FIG. 8A</b>：DRAM 272 的 top / partitionable / bottom 三段与 L2 cache slices 800 的关系；throttle counters 840 监控各分区对系统内存带宽的占用。</div></div>
+<div class="fig"><img src="figs/web/mig_fig08b.png" alt="FIG 8B"><div class="cap"><b>原图 FIG. 8B</b>：1D SPA space 850 的布局：top addresses 852 / partitionable addresses 854（按 region 856(0)/(4)/(6)/(7) 分给各分区）/ bottom addresses 858。</div></div>
+</div>
+
+<h3>1.4 swizID：用一串位图同时描述"计算分区"和"内存分区"的边界</h3>
+<div class="card">
+<p>这是本专利最精巧的设计之一。分区配置表（FIG. 11）里预定义了 15 种 partition option（8 slice 的各种合法组合），每个 option 对应一个 11-bit <b>swizID</b>：</p>
+<ul>
+  <li>swizID 的每一位对应一条 <b>boundary option</b>（计算侧的 1110 系列、DRAM 侧的 1900 系列），置 1 = 在该处激活隔离边界；</li>
+  <li>bit 0 和 bit 10 恒为 1，永远激活 L2 的顶部/底部边界（top/bottom section 总是存在）；</li>
+  <li>管理员选定多个 partition option 后，hypervisor 把它们的 swizID 做 <b>按位 OR</b>，得到 configuration swizID，一次性激活所有边界。</li>
+</ul>
+<p>以专利示例为例：选 option 1（slice 0–3）、5（slice 4–5）、13、14（各 1 slice），configuration swizID = <code>11110100011</code>，对应 FIG. 20 里激活边界 1900(0)(1)(5)(7)(8)(9)(10)，把 partitionable section 切成 822(0)/(4)/(6)/(7) 四块。</p>
+<p>同一套 swizID 还被 AMAP 复用为 <b>memory access swizID</b>（交织因子）：本地访存用 local swizID（由系统物理地址算出，把请求打散到本分区内的 L2 slice，防止 camping），系统内存/peer 访问用 remote swizID（由驱动/hypervisor 提供）。<b>swizzle 在这里身兼两职：既做负载均衡（打散热点），又做隔离（把交织范围限制在分区边界内）</b>。</p>
+</div>
+
+<div class="grid2">
+<div class="fig"><img src="figs/web/mig_fig19.png" alt="FIG 19"><div class="cap"><b>原图 FIG. 19</b>：DRAM 上的边界选项 1900(0)–1900(10)；T/P/B/M/F/W 参数的含义。</div></div>
+<div class="fig"><img src="figs/web/mig_fig20.png" alt="FIG 20"><div class="cap"><b>原图 FIG. 20</b>：configuration swizID = 11110100011 激活的边界与形成的 DRAM portions 822(0)/(4)/(6)/(7)。</div></div>
+</div>
+
+<h3>1.5 MMU + AMAP：地址转换与故障隔离</h3>
+<div class="card">
+<p><b>访问路径</b>：SMC engine 发出的地址经 MMU 1600 落到 1D SPA space 850，再由 AMAP 2110 把 partitionable 地址 swizzle 到本分区 L2 slice 组、进而落到对应 DRAM portion。由于 swizzle 的散布范围被 configuration swizID 限定在分区内部，<b>每个分区把自己的 DRAM portion 看作一段连续的线性物理地址，而物理上它分散在本分区的所有 L2 slice / DRAM 上</b> —— 隔离与带宽利用兼得。越界访问（FIG. 22 中 2210）会被 MMU 拦截并报 fault 2220。</p>
+<p><b>故障隔离</b>：每个 SMC engine 使用从 0 开始的本地 VASID 1500；MMU 1600 维护本地→全局 VASID 1510 的映射。某引擎出错时产生 local fault identifier 1610，MMU 翻译成 global fault identifier 1620 上报 guest OS / hypervisor，<b>只复位出错的引擎，其余引擎不受干扰</b>。又因为所有引擎的本地编号体系一致（都从 0 开始），context 可以在不同 SMC engine、甚至不同 PPU 之间迁移而不改代码 —— 迁移时用"soft floorsweeping"让目标分区模拟源分区的资源缺口，保证 QoS 一致。</p>
+</div>
+
+<div class="svgbox">
+<svg viewBox="0 0 1000 330" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI,Microsoft YaHei,sans-serif">
+  <defs><marker id="arw3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5a6b80"/></marker></defs>
+  <rect x="20" y="60" width="170" height="120" rx="8" fill="#eaf1fb" stroke="#2b6cb0"/>
+  <text x="105" y="86" font-size="12.5" font-weight="700" fill="#16324f" text-anchor="middle">SMC Engine 700(i)</text>
+  <text x="105" y="107" font-size="11.5" fill="#5a6b80" text-anchor="middle">VA + 本地 VASID 1500</text>
+  <text x="105" y="126" font-size="11.5" fill="#5a6b80" text-anchor="middle">（0 起始，各引擎一致）</text>
+  <text x="105" y="150" font-size="11" fill="#c05621" text-anchor="middle">fault → local ID 1610</text>
+
+  <rect x="255" y="60" width="200" height="120" rx="8" fill="#fff" stroke="#76b900" stroke-width="1.6"/>
+  <text x="355" y="86" font-size="12.5" font-weight="700" fill="#4a6b00" text-anchor="middle">MMU 1600 + AMAP 2110</text>
+  <text x="355" y="107" font-size="11.5" fill="#5a6b80" text-anchor="middle">页表：VA → 1D SPA 850</text>
+  <text x="355" y="126" font-size="11.5" fill="#5a6b80" text-anchor="middle">AMAP：按 swizID 在分区内 swizzle</text>
+  <text x="355" y="150" font-size="11" fill="#c05621" text-anchor="middle">local fault ID → global ID 1620</text>
+
+  <rect x="520" y="20" width="440" height="90" rx="8" fill="#f7fafc" stroke="#9aa8b8"/>
+  <text x="740" y="42" font-size="12" font-weight="700" fill="#16324f" text-anchor="middle">1D SPA Space 850</text>
+  <rect x="535" y="54" width="80" height="44" fill="#dfe9f5" stroke="#2b6cb0"/>
+  <text x="575" y="80" font-size="11" fill="#16324f" text-anchor="middle">top 852</text>
+  <rect x="615" y="54" width="250" height="44" fill="#f3f9e8" stroke="#76b900"/>
+  <text x="740" y="73" font-size="11" fill="#16324f" text-anchor="middle">partitionable 854</text>
+  <text x="740" y="90" font-size="10.5" fill="#5a6b80" text-anchor="middle">region 856(0)|(4)|(6)|(7) → 只属本分区</text>
+  <rect x="865" y="54" width="80" height="44" fill="#dfe9f5" stroke="#2b6cb0"/>
+  <text x="905" y="80" font-size="11" fill="#16324f" text-anchor="middle">bottom 858</text>
+
+  <rect x="520" y="140" width="440" height="110" rx="8" fill="#fff" stroke="#2b6cb0"/>
+  <text x="740" y="162" font-size="12" font-weight="700" fill="#16324f" text-anchor="middle">物理侧：本分区的 L2 slices 800 + DRAM portion 822(i)</text>
+  <text x="740" y="184" font-size="11.5" fill="#5a6b80" text-anchor="middle">地址在分区内伪随机交织（防 camping、均带宽）</text>
+  <text x="740" y="204" font-size="11.5" fill="#5a6b80" text-anchor="middle">越界访问 → MMU 拦截（FIG.22 的 2210 → fault 2220）</text>
+  <text x="740" y="228" font-size="11" fill="#8895a7" text-anchor="middle">top/bottom 段：swizzle 散布到全部 slice，仅系统级实体可及</text>
+
+  <line x1="190" y1="120" x2="255" y2="120" stroke="#5a6b80" stroke-width="1.8" marker-end="url(#arw3)"/>
+  <line x1="455" y1="90" x2="520" y2="65" stroke="#5a6b80" stroke-width="1.8" marker-end="url(#arw3)"/>
+  <line x1="740" y1="110" x2="740" y2="140" stroke="#5a6b80" stroke-width="1.8" marker-end="url(#arw3)"/>
+
+  <rect x="255" y="230" width="200" height="60" rx="8" fill="#fdf3e7" stroke="#c05621"/>
+  <text x="355" y="253" font-size="11.5" fill="#7b341e" text-anchor="middle">hypervisor / guest OS</text>
+  <text x="355" y="272" font-size="11" fill="#7b341e" text-anchor="middle">按 global fault ID 只复位故障引擎</text>
+  <line x1="355" y1="180" x2="355" y2="230" stroke="#c05621" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arw3)"/>
+</svg>
+<div class="cap"><b>图 1-2（自绘，依据 FIG. 15/16/21/22）</b>：MIG 的地址与故障路径。隔离由"AMAP 交织范围 ⊆ 分区边界"保证；故障编号本地化使迁移与独立复位成为可能。</div>
+</div>
+
+<div class="grid2">
+<div class="fig"><img src="figs/web/mig_fig21.png" alt="FIG 21"><div class="cap"><b>原图 FIG. 21</b>：MMU 1600 + AMAP 2110 把 1D SPA 2100（852/854/858）映射到 DRAM 三段。</div></div>
+<div class="fig"><img src="figs/web/mig_fig22.png" alt="FIG 22"><div class="cap"><b>原图 FIG. 22</b>：AMAP 把 region 856(0) 的地址 swizzle 到 DRAM portion 822(0) 的 L2 slices 800(0)；越界访问 2210 触发 fault 2220。</div></div>
+</div>
+
+<div class="fig"><img src="figs/web/mig_fig16.png" alt="FIG 16"><div class="cap"><b>原图 FIG. 16</b>：SMC engine 700(1) 故障 → local fault ID 1610 → MMU 1600 翻译成 global fault ID 1620 → 上报，其余引擎状态 OK、继续运行。</div></div>
+
+<h3>1.6 其余技术要点（速览）</h3>
+<div class="card">
+<ul>
+  <li><b>资源分配</b>（FIG. 13）：PCE（copy engine）等充足资源静态绑定到 slice；decoder 等稀缺资源动态共享，并配性能监视器做负载均衡。</li>
+  <li><b>带宽配额</b>：分区按 slice 占比获得内存带宽份额（4/8 slice = 1/2 带宽），由分配相应比例 L2 slice + throttle counter 840 实现。</li>
+  <li><b>time-slicing</b>（FIG. 25–30B）：SMC engine 可在多个 context / VM 间时分复用；VM 级切换建议整分区同步切出切入（因共享 L2）。</li>
+  <li><b>floorsweeping 容错</b>：某 slice 有坏 GPC 时，hypervisor 动态禁用不可行的 partition option / swizID（FIG. 17、FIG. 18 流程）。</li>
+  <li><b>权限模型</b>（FIG. 9/10）：admin 在 trust boundary 之下"create partition"，guest 在 VM 内"configure partition"（配 SMC engine）；guest 权限只覆盖自己的分区。也支持 bare-metal（无 hypervisor，host OS 直接配置）与容器场景（一个 Docker 容器 ≈ 一个 PPU partition）。</li>
+  <li><b>PRI 地址空间</b>（FIG. 31/32）：BAR0 → 特权寄存器空间的映射按 sys pipe 重映射，支持向多分区的寄存器广播。</li>
+  <li><b>性能监控与功耗</b>（FIG. 33–39）：性能计数器多路复用与聚合、按分区的功耗/频率管理。</li>
+</ul>
+</div>
+
+<div class="key"><b>与你关注点（MIG DDR 地址隔离）的直接对应</b>：MIG 的显存隔离 = ① DRAM 物理上切三段、partitionable 段按 slice 组切块（FIG. 8A/19/20）；② 1D SPA 把每块呈现为连续线性空间（FIG. 8B/21）；③ AMAP 用分区自己的 swizID 把地址只散布到本分区的 L2 slice / DRAM（FIG. 22），硬件层面不存在跨分区的地址路径；④ 故障与复位以本地 VASID 隔离（FIG. 15/16）。</div>
+
+<!-- ======================= 专利二 033 ======================= -->
+<h2 id="sec2">2. US10909033B1：高效内存分区技术（Strided / Partition 混合地址映射）</h2>
+
+<div class="meta">
+  <div><b>专利号</b>：US 10,909,033 B1（已授权，有效至 2039-09）</div>
+  <div><b>授权日</b>：2021-02-02</div>
+  <div><b>申请日</b>：2019-08-15</div>
+  <div><b>申请人</b>：NVIDIA</div>
+  <div><b>发明人</b>：Kun Fang、James M. Van Dyke</div>
+  <div><b>家族</b>：US20210049097A1、CN112445713B、DE102020104637</div>
+</div>
+
+<h3>2.1 要解决的问题</h3>
+<div class="card">
+<p>一颗 GPU 被多个客户（应用/租户）共享时，显存地址空间要同时支持两类分配：</p>
+<ul>
+  <li><b>Strided memory space</b>（公共区域）：地址条带化地散布到<b>全部</b>内存器件上，带宽利用率最高；</li>
+  <li><b>Partition memory space</b>（客户私有区域）：地址只散布到<b>一部分</b>内存器件（垂直切分），保证客户间资源隔离。</li>
+</ul>
+<p>麻烦在于映射换算（线性地址 → 器件内位置地址）：换算要简单，单元尺寸最好取 2 的幂、且是"器件数 × 页"的整数倍。但现实中 ① 客户申请的 strided 空间大小任意，<b>不落在干净边界上</b>；② 内存器件数量 <b>D 可能不是 2 的幂</b>（如 12 颗）；③ swizzle/hash 会让地址非线性散布。若简单地在 strided 与 partition 之间留一圈"黑名单"缓冲带（blacklist），vMMU 大页粒度下会浪费大量显存。</p>
+<div class="warn"><b>问题陈述</b>：如何在不限制器件数量、不浪费显存的前提下，让 strided 空间与多个隔离的 partition 空间共存，且地址换算仍然简单、互不别名（aliasing）？</div>
+</div>
+
+<h3>2.2 核心思想：common boundary + 零头借位</h3>
+<div class="card">
+<p>设 strided 空间的申请上界为 <b>B<sub>allocated</sub></b>（allocation boundary 103），它通常不"干净"。专利的做法：</p>
+<ol>
+  <li>找到 B<sub>allocated</sub> 之下最近的 <b>common boundary 101（B<sub>common</sub>）</b> —— 该边界在每个器件中的位置地址相同（= MMU 页整数倍 × 器件数 D 的整数倍），是天然无别名的分界线；</li>
+  <li><b>B<sub>common</sub> 以下的"大部分"（most of）strided 空间</b> 105：按 strided 格式正常条带化到全部器件 —— 换算简单；</li>
+  <li><b>B<sub>common</sub> 与 B<sub>allocated</sub> 之间的"零头"（remainder）112</b>：<b>不再条带化，而是按比例拆进各 partition 空间的顶部</b>（remainder locations 111A/111B），并按<b>各 partition 自己的格式</b>（swizzle/hash）映射；</li>
+  <li>各 partition 空间的分配起点从 B<sub>allocated</sub> <b>下移</b>到 B<sub>common</sub>，并把容量各加大 F/2（F = 零头大小），边界全部落在 common boundary 上（B<sub>common</sub>、B<sub>common</sub>+FirstPartitionSize+F/2、maximum）。</li>
+</ol>
+<p>效果：所有真实边界都是 common boundary，<b>缓冲带（buffer region）被压缩到最小甚至为零</b>；strided 与 partition 空间之间不存在别名；换算只对"零头"这一小段需要特判。</p>
+</div>
+
+<div class="svgbox">
+<svg viewBox="0 0 1000 360" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI,Microsoft YaHei,sans-serif">
+  <defs><marker id="arw4" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#c05621"/></marker></defs>
+  <!-- 左：朴素做法 -->
+  <text x="250" y="30" font-size="14" font-weight="700" fill="#16324f" text-anchor="middle">朴素做法：黑名单缓冲带（浪费）</text>
+  <rect x="150" y="50" width="200" height="90" fill="#f3f9e8" stroke="#76b900"/>
+  <text x="250" y="88" font-size="12" fill="#16324f" text-anchor="middle">Partition B</text>
+  <text x="250" y="106" font-size="10.5" fill="#5a6b80" text-anchor="middle">（一半器件）</text>
+  <rect x="150" y="140" width="200" height="24" fill="#e2e8f0" stroke="#8895a7" stroke-dasharray="4 3"/>
+  <text x="250" y="156" font-size="10.5" fill="#5a6b80" text-anchor="middle">buffer 黑名单</text>
+  <rect x="150" y="164" width="200" height="40" fill="#fff" stroke="#8895a7"/>
+  <text x="250" y="158" font-size="0" fill="none">.</text>
+  <text x="250" y="167" font-size="10.5" fill="#c05621" text-anchor="middle">strided 零头（不均匀）</text>
+  <rect x="150" y="204" width="200" height="110" fill="#eaf1fb" stroke="#2b6cb0"/>
+  <text x="250" y="252" font-size="12" fill="#16324f" text-anchor="middle">Strided 主体（条带化到全部器件）</text>
+  <text x="250" y="270" font-size="10.5" fill="#5a6b80" text-anchor="middle">0 → common boundary</text>
+  <line x1="360" y1="164" x2="420" y2="164" stroke="#c05621" stroke-width="1.5"/>
+  <text x="425" y="168" font-size="10.5" fill="#c05621">B_allocated（不干净）</text>
+  <line x1="360" y1="204" x2="420" y2="204" stroke="#2b6cb0" stroke-width="1.5"/>
+  <text x="425" y="208" font-size="10.5" fill="#2b6cb0">B_common（干净）</text>
+
+  <!-- 右：专利做法 -->
+  <text x="720" y="30" font-size="14" font-weight="700" fill="#16324f" text-anchor="middle">本专利：零头借入 partition 空间</text>
+  <rect x="620" y="50" width="200" height="56" fill="#f3f9e8" stroke="#76b900"/>
+  <text x="720" y="74" font-size="12" fill="#16324f" text-anchor="middle">Partition B（扩容 F/2）</text>
+  <rect x="620" y="106" width="200" height="22" fill="#fde8d8" stroke="#c05621"/>
+  <text x="720" y="121" font-size="10.5" fill="#7b341e" text-anchor="middle">零头 111B（按 B 的格式映射）</text>
+  <rect x="620" y="128" width="200" height="56" fill="#eef7e0" stroke="#76b900"/>
+  <text x="720" y="152" font-size="12" fill="#16324f" text-anchor="middle">Partition A（扩容 F/2）</text>
+  <rect x="620" y="184" width="200" height="22" fill="#fde8d8" stroke="#c05621"/>
+  <text x="720" y="199" font-size="10.5" fill="#7b341e" text-anchor="middle">零头 111A（按 A 的格式映射）</text>
+  <rect x="620" y="206" width="200" height="108" fill="#eaf1fb" stroke="#2b6cb0"/>
+  <text x="720" y="252" font-size="12" fill="#16324f" text-anchor="middle">Strided 主体 105（条带化）</text>
+  <text x="720" y="270" font-size="10.5" fill="#5a6b80" text-anchor="middle">0 → B_common</text>
+  <line x1="830" y1="106" x2="880" y2="106" stroke="#c05621" stroke-width="1.5"/>
+  <text x="885" y="110" font-size="10.5" fill="#c05621">common boundary 107</text>
+  <line x1="830" y1="206" x2="880" y2="206" stroke="#2b6cb0" stroke-width="1.5"/>
+  <text x="885" y="210" font-size="10.5" fill="#2b6cb0">common boundary 101</text>
+
+  <line x1="470" y1="180" x2="590" y2="180" stroke="#c05621" stroke-width="2" marker-end="url(#arw4)"/>
+  <text x="530" y="168" font-size="11.5" fill="#c05621" text-anchor="middle">重映射</text>
+</svg>
+<div class="cap"><b>图 2-1（自绘，依据 FIG. 1A/1D/1E）</b>：把 strided 空间的"零头"从公共区搬到各 partition 空间的预留扩容里，使所有真实边界都对齐到 common boundary，黑名单缓冲带消失。</div>
+</div>
+
+<div class="grid2">
+<div class="fig"><img src="figs/web/part_fig1a.png" alt="FIG 1A"><div class="cap"><b>原图 FIG. 1A</b>：strided memory locations 110（0→B_allocated）与两个 partition memory space 115A/115B；common boundary 101 与 allocation boundary 103 之间的落差就是问题所在。</div></div>
+<div class="fig"><img src="figs/web/part_fig1e.png" alt="FIG 1E"><div class="cap"><b>原图 FIG. 1E</b>：重映射后的布局 —— 零头 112 搬入 111A/111B，partition 125A/125B 的边界全部对齐 common boundary（101/106/107/108）。</div></div>
+</div>
+
+<div class="fig"><img src="figs/web/part_fig1f.png" alt="FIG 1F"><div class="cap"><b>原图 FIG. 1F</b>：12 个器件（非 2 的幂）情形：高位地址决定落在哪个 partition，两 partition 的内部位置地址可以相同而不冲突；零头 111A/111B 散布在器件行上。</div></div>
+
+<h3>2.3 与处理资源的联动、映射单元与流程</h3>
+<div class="card">
+<ul>
+  <li><b>资源联动</b>（FIG. 1I/2A）：partition 不只切内存 —— 每个 partition memory space 绑定一组处理资源（uGPU0/uGPU1、L2 资源 170、处理资源 160）。分区容量可以是 1、1/2、1/4、3/4、1/8…等任意组合（resource 240–254），每个分区有标识符，决定其映射格式。</li>
+  <li><b>Address Mapping Unit 255</b>（FIG. 2B）：三级结构 —— Virtual-to-Physical Translation Unit 260 → Resource Identification Unit 265（由地址识别属于哪个 strided/partition 空间，给出 identifier）→ Physical Address Mapping Unit 270（按该空间的格式计算 location address）。</li>
+  <li><b>映射流程</b>（FIG. 2C）：收到地址 → 判断是否 strided 空间：否则映射到 partition 的第三位置子集（两 common boundary 之间）；是则再判是否在零头内：零头内按"第二公共边界对齐的第二子集"计算，否则按"第一公共边界对齐的第一子集"计算。</li>
+  <li><b>格式（format）</b>：每个空间可指定自己的 swizzle/hash；common boundary 的定义保证了任意格式下都不会跨界别名。</li>
+  <li><b>第二 strided 空间</b>：partition 里富余的位置还能再容纳第二个 strided 空间的零头（FIG. 1H），进一步榨干碎片。</li>
+</ul>
+</div>
+
+<div class="grid2">
+<div class="fig"><img src="figs/web/part_fig1i.png" alt="FIG 1I"><div class="cap"><b>原图 FIG. 1I</b>：处理器内含 uGPU0/uGPU1，12 个内存器件 165 与 L2 资源 170、处理资源 160 一起被垂直切分给两个 partition。</div></div>
+<div class="fig"><img src="figs/web/part_fig2ab.png" alt="FIG 2A/2B"><div class="cap"><b>原图 FIG. 2A/2B</b>：上 —— 各种分区容量组合（resource 240–254）；下 —— 地址映射单元 255 的三级流水线（260→265→270）。</div></div>
+</div>
+
+<div class="fig"><img src="figs/web/part_fig2c.png" alt="FIG 2C"><div class="cap"><b>原图 FIG. 2C</b>：地址 → 位置地址的计算流程：strided? → 零头内? → 分别走三种位置子集的计算路径。</div></div>
+
+<div class="key"><b>权利要求 1 要点（方法独立项）</b>：接收访问地址空间的地址，该空间分为 strided 部分与至少一个 partition 部分；判定地址在 strided 部分内，其中 strided 的"大部分"映射到按第一公共边界对齐的第一位置子集，"零头"映射到按第二公共边界对齐的第二位置子集，partition 部分映射到两公共边界之间的第三位置子集；地址在大部分内算第一类位置地址，在零头内算第二类位置地址。</div>
+
+<div class="key"><b>定位</b>：这篇是"纯映射数学"专利 —— 它没有讲虚拟化、没有讲租户管理，只讲<b>怎么切地址才干净</b>。它正是 MIG（专利一）里 memory partition 能做细的底层工具：MIG 的场景（多租户、任意大小的分区、非 2 幂器件数）全部命中它要解决的问题。</div>
+
+<!-- ============ 第 3 节 ============ -->
+<section id="sec3">
+<h2>3. US20250078199A1：统一内存 GPU 的 Localized Mode（地址 locality）</h2>
+
+<div class="card meta">
+<table>
+<tr><th>公开号</th><td>US20250078199A1</td><th>申请人</th><td>NVIDIA Corporation</td></tr>
+<tr><th>申请日</th><td>2023-08-29</td><th>公开日</th><td>2025-03-06</td></tr>
+<tr><th>发明人</th><td colspan="3">Wish Gandhi、Ze Long、Kun Fang（Kun Fang 也是专利二 US10909033B1 的发明人）</td></tr>
+<tr><th>法律状态</th><td>Pending（申请中）</td><th>性质</th><td colspan="3">多 die GPU 上的地址本地化（locality）机制</td></tr>
+</table>
+</div>
+
+<h3>3.1 要解决的问题：一颗"逻辑 GPU"其实是两颗 die</h3>
+<p>NVIDIA 的高端 GPU 走向多 die（chiplet）封装：一个 <b>uGPU</b>（micro-GPU）die 自带 4 个 GPC、自己的 XBAR、自己的 L2 cache（LTC）和自己的 HBM 栈；两个 uGPU 之间用 die-to-die 互连（C2C）拼成一颗对软件可见的"统一内存 GPU"。问题随之而来：</p>
+<ul>
+<li>跨 uGPU 的内存访问要走 C2C，<b>带宽减半、延迟变高</b>；</li>
+<li>同一份数据可能在两个 uGPU 的 L2 里<b>各缓存一份</b>，浪费容量；</li>
+<li>而传统地址映射把数据按细粒度 stride 交织（swizzle）到所有 uGPU 上 —— 任何 CTA 访问的数据都几乎必然有一半在对面的 die 上。</li>
+</ul>
+<p>背景上，这篇专利明确站在 CUDA Unified Memory（统一虚拟地址）的语境里：系统已经能给 CPU/GPU 提供统一地址空间、按页迁移数据，但它缺少的是"把数据<b>主动钉</b>在离计算最近的 die 上"的手段。</p>
+
+<div class="fig"><img src="figs/web/umgpu_fig02.png" alt="uGPU 基础架构">
+<div class="cap">图 3-a（原专利 FIG.2）：单个 uGPU 的内部结构 —— 4 个 GPC、XBAR、LTC、HBM 控制器自成一体</div></div>
+
+<div class="fig"><img src="figs/web/umgpu_fig05.png" alt="多 die 统一内存 GPU">
+<div class="cap">图 3-b（原专利 FIG.5）：两个 uGPU 经 C2C 互连组成的统一内存 GPU，对软件呈现为一颗 GPU、一个地址空间</div></div>
+
+<h3>3.2 方案双支柱：GPC affinity ＋ Localized AMAP</h3>
+<p>专利的方案有两条腿，缺一不可：</p>
+<ol>
+<li><b>计算侧的 locality</b>：用 GPC affinity mask 把 CTA（线程块）只分发到某个 uGPU 的 GPC 上（由 CWD 分发单元执行），保证"计算在哪个 die"是可控的；</li>
+<li><b>数据侧的 locality</b>：在 AMAP（地址映射）层新增一种 <b>localized 映射视图</b>，把指定地址范围整体放到某一个 uGPU 的内存上，保证"数据在哪个 die"也是可控的。</li>
+</ol>
+<p>两者配合：affinity mask 让 CTA 留在 uGPU0，localized 映射让它访问的数据也留在 uGPU0，跨 die 流量被压到最小。</p>
+
+<div class="fig"><img src="figs/web/umgpu_fig06a.png" alt="非本地化执行">
+<div class="cap">图 3-c（原专利 FIG.6A）：非本地化模式 —— CTA 与数据跨两个 uGPU 交织，C2C 流量大</div></div>
+
+<div class="fig"><img src="figs/web/umgpu_fig06b.png" alt="本地化执行">
+<div class="cap">图 3-d（原专利 FIG.6B）：本地化模式 —— 计算与数据都收敛到本 uGPU，C2C 只承担少量远端访问</div></div>
+
+<div class="fig"><img src="figs/web/umgpu_fig07.png" alt="localized mode 流程">
+<div class="cap">图 3-e（原专利 FIG.7）：localized mode 的配置与访问流程（步骤 1002–1008）</div></div>
+
+<div class="fig"><img src="figs/web/umgpu_fig08.png" alt="软硬件栈">
+<div class="cap">图 3-f（原专利 FIG.8）：从 CUDA API、驱动/RM 到 MMU/AMAP 的完整软硬件栈</div></div>
+
+<h3>3.3 核心机制：PTE 里的一个 LOCALIZATION_MODE_BIT</h3>
+<p>这篇专利最漂亮的设计是：<b>不新增页表结构，只在 PTE（页表项）的地址域高位里借 1 个 bit</b>，按 <b>64MB 对齐的 chunk</b> 粒度声明这段地址的映射模式：</p>
+<ul>
+<li><b>bit = 0（传统模式）</b>：64MB chunk 内部按细粒度 stride 交织（swizzle）散布到两个 uGPU（FIG.9A）—— 面向带宽最优；</li>
+<li><b>bit = 1（localized 模式）</b>：每个 64MB chunk 的<b>前 32MB 映射到 uGPU0、后 32MB 映射到 uGPU1</b>（FIG.9B），并且<b>不做 swizzle</b>，让软件能直接从地址算出数据归属哪个 die —— 面向 locality 最优。</li>
+</ul>
+
+<div class="fig"><img src="figs/web/umgpu_fig09ab.png" alt="FIG 9A 与 9B">
+<div class="cap">图 3-g（原专利 FIG.9A/9B，同页）：两种模式下 64MB chunk 到两个 uGPU 的映射对比</div></div>
+
+<div class="svgbox">
+<div class="cap">自绘图 3-1：Localized Mode 的地址重排原理（理解示意）</div>
+<svg viewBox="0 0 980 300" xmlns="http://www.w3.org/2000/svg" font-family="Microsoft YaHei, sans-serif">
+<defs><marker id="arr3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#555"/></marker></defs>
+<text x="20" y="28" font-size="15" font-weight="bold" fill="#333">一个 64MB chunk（VA 连续）在两种 mode 下的物理落点</text>
+<!-- mode 0 -->
+<text x="20" y="70" font-size="13" fill="#333">mode=0 传统交织：</text>
+<g font-size="11" fill="#fff" text-anchor="middle">
+<rect x="230" y="52" width="55" height="26" fill="#5b8dd9"/><text x="257" y="69">u0</text>
+<rect x="285" y="52" width="55" height="26" fill="#e07b54"/><text x="312" y="69">u1</text>
+<rect x="340" y="52" width="55" height="26" fill="#5b8dd9"/><text x="367" y="69">u0</text>
+<rect x="395" y="52" width="55" height="26" fill="#e07b54"/><text x="422" y="69">u1</text>
+<rect x="450" y="52" width="55" height="26" fill="#5b8dd9"/><text x="477" y="69">u0</text>
+<rect x="505" y="52" width="55" height="26" fill="#e07b54"/><text x="532" y="69">u1</text>
+<rect x="560" y="52" width="55" height="26" fill="#5b8dd9"/><text x="587" y="69">u0</text>
+<rect x="615" y="52" width="55" height="26" fill="#e07b54"/><text x="642" y="69">u1</text>
+</g>
+<text x="700" y="70" font-size="12" fill="#777">细粒度 swizzle，任何访问≈50% 跨 die</text>
+<!-- mode 1 -->
+<text x="20" y="130" font-size="13" fill="#333">mode=1 localized：</text>
+<rect x="230" y="112" width="220" height="26" fill="#5b8dd9"/><text x="340" y="129" font-size="12" fill="#fff" text-anchor="middle">前 32MB → uGPU0</text>
+<rect x="450" y="112" width="220" height="26" fill="#e07b54"/><text x="560" y="129" font-size="12" fill="#fff" text-anchor="middle">后 32MB → uGPU1</text>
+<text x="700" y="130" font-size="12" fill="#777">不 swizzle，软件按地址即可判断归属</text>
+<!-- chunk 独立性 -->
+<line x1="230" y1="180" x2="670" y2="180" stroke="#bbb" stroke-width="1"/>
+<text x="20" y="205" font-size="13" fill="#333">相邻 chunk 互不干扰：</text>
+<rect x="230" y="188" width="145" height="26" fill="#8fbf7f"/><text x="302" y="205" font-size="11" fill="#fff" text-anchor="middle">chunk n（mode=1）</text>
+<rect x="375" y="188" width="145" height="26" fill="#5b8dd9"/><text x="447" y="205" font-size="11" fill="#fff" text-anchor="middle">chunk n+1（mode=0）</text>
+<rect x="520" y="188" width="150" height="26" fill="#8fbf7f"/><text x="595" y="205" font-size="11" fill="#fff" text-anchor="middle">chunk n+2（mode=1）</text>
+<text x="20" y="252" font-size="12.5" fill="#555">模式切换只在 64MB chunk 内部重排地址，chunk 之间顺序不变 → 同一个 VA 空间里两种模式可以逐块混布，RM（资源管理器）按 32MB 半块做子分配。</text>
+</svg>
+</div>
+
+<h3>3.4 工程细节（容易被忽略但很关键）</h3>
+<table class="card">
+<tr><th>细节</th><th>做法与原因</th></tr>
+<tr><td>RM 子分配粒度</td><td>localized 模式下按 32MB"半块"分配，与映射边界对齐，避免一个分配跨两个 die</td></tr>
+<tr><td>CPU 访问限制</td><td>CPU <b>不能访问</b> localized 内存（只能 prefetch、不能修改）—— 因为 localized 地址的解释依赖 GPU 侧 AMAP，放开 CPU 写会破坏一致性</td></tr>
+<tr><td>r2p 反向映射</td><td>reverse-to-physical 查询<b>永远按 non-localized 解释</b>，保证一致性 probe（snoop）结果与模式无关、始终正确</td></tr>
+<tr><td>硬件改动</td><td>MMU、FLA、XAL 各增加 1 bit 的模式传递与解释逻辑，改动极小</td></tr>
+<tr><td>软件接口</td><td>新增 CUDA API：cudaMalloc 族增加 localization 属性；与既有的 GPC affinity（US8253749 族）组合使用</td></tr>
+</table>
+
+<div class="key"><b>定位</b>：这是"地址 locality"专利 —— 它不隔离租户，而是让<b>同一个地址空间内的不同 chunk 可以逐块选择"带宽优先"还是"locality 优先"</b>。思路和 MIG 的 boundary options 一脉相承：把模式编码进地址/PTE 的高位，让硬件沿途（MMU→XBAR→L2）只看地址就能做对的事。</div>
+</section>
+
+<!-- ============ 第 4 节 ============ -->
+<section id="sec4">
+<h2>4. US20260227917A1：动态 Memory Bank Cluster（bank 级 locality ＋ 功耗）</h2>
+
+<div class="card meta">
+<table>
+<tr><th>公开号</th><td>US20260227917A1</td><th>申请人</th><td>NVIDIA Corporation</td></tr>
+<tr><th>申请日</th><td>2025-01-31</td><th>公开日</td><td>2026-08-06</td></tr>
+<tr><th>发明人</th><td colspan="3">Rangharajan Venkatesan、Stephen W. Keller、Yakun Sophia Tambe 等</td></tr>
+<tr><th>法律状态</th><td>Pending</td><th>分类号亮点</td><td colspan="3">G06F3/0625（存储功耗管理）、Y02D10（节能计算）</td></tr>
+</table>
+</div>
+
+<h3>4.1 要解决的问题：顺序访问太慢，全 bank 并发又太费电</h3>
+<p>AI 加速器 SoC 上有一大块片上存储（global scratchpad / weight memory，分成许多 bank）。两种极端都不好：</p>
+<ul>
+<li>对一块 buffer 纯<b>顺序访问</b>：带宽被单个 bank 卡死，AI 加速器吃不饱；</li>
+<li>所有 buffer 都<b>铺满全部 bank</b>（交织）：带宽够，但每次访问点亮全部 bank，<b>功耗爆炸</b>；而近存处理器（near-memory processor）这类部件其实只需要中等带宽。</li>
+</ul>
+<p>不同 tensor、不同层、不同执行部件的带宽需求差异很大（4bit vs 8bit 精度、AI 加速器 vs 近存处理器），固定的交织策略不可能对所有人都好。</p>
+
+<div class="fig"><img src="figs/web/dyn_fig04.png" alt="SoC 架构">
+<div class="cap">图 4-a（原专利 FIG.4）：SoC 400 —— control processor 402、AI accelerator 406、near-memory processor 410、memory controller 414、global scratchpad 416、weight memory 418</div></div>
+
+<h3>4.2 核心概念：bank cluster size 随请求走</h3>
+<p>机制一句话：<b>每个读写请求自己携带一个 bank cluster size（1 / 2 / 4）</b>，地址映射按这个 size 动态解释：</p>
+<ul>
+<li>cluster <b>内部</b>的 bank 之间做<b>交织</b>（并发、带宽）；</li>
+<li>cluster <b>之间</b>做<b>顺序</b>排布（一个 cluster 满了再到下一个，省电、可局部性管理）。</li>
+</ul>
+<p>于是同一块物理存储，对不同 tensor 呈现不同的"宽度"：权重要带宽就 size=4，标量/控制数据要省电就 size=1。</p>
+
+<div class="fig"><img src="figs/web/dyn_fig06abc.png" alt="cluster size 1/2/4">
+<div class="cap">图 4-b（原专利 FIG.6A–6C，同页）：cluster size = 1 / 2 / 4 时地址到 bank 的分布</div></div>
+
+<div class="svgbox">
+<div class="cap">自绘图 4-1：Algorithm 1 的虚拟地址位域划分（按专利文本 Algorithm 1 整理）</div>
+<svg viewBox="0 0 980 330" xmlns="http://www.w3.org/2000/svg" font-family="Microsoft YaHei, sans-serif">
+<text x="20" y="26" font-size="15" font-weight="bold" fill="#333">同一个 VA，按请求携带的 cluster size 做三种不同切分</text>
+<!-- headers -->
+<text x="20" y="62" font-size="12" fill="#888">MSB（高位）</text>
+<text x="880" y="62" font-size="12" fill="#888" text-anchor="end">LSB（低位）</text>
+<!-- size=1 -->
+<text x="20" y="100" font-size="13" font-weight="bold" fill="#333">size = 1</text>
+<rect x="120" y="80" width="380" height="30" fill="#5b8dd9"/><text x="310" y="99" font-size="12" fill="#fff" text-anchor="middle">VA 高位 → physical bank 号</text>
+<rect x="500" y="80" width="380" height="30" fill="#9db8d2"/><text x="690" y="99" font-size="12" fill="#fff" text-anchor="middle">VA 低位 → bank 内偏移（local）</text>
+<!-- size=2 -->
+<text x="20" y="160" font-size="13" font-weight="bold" fill="#333">size = 2</text>
+<rect x="120" y="140" width="240" height="30" fill="#e07b54"/><text x="240" y="159" font-size="12" fill="#fff" text-anchor="middle">最高位 → bank cluster</text>
+<rect x="360" y="140" width="300" height="30" fill="#9db8d2"/><text x="510" y="159" font-size="12" fill="#fff" text-anchor="middle">bank 内偏移</text>
+<rect x="660" y="140" width="220" height="30" fill="#8fbf7f"/><text x="770" y="159" font-size="12" fill="#fff" text-anchor="middle">最低 1 bit → 簇内 bank</text>
+<!-- size=4 -->
+<text x="20" y="220" font-size="13" font-weight="bold" fill="#333">size = 4</text>
+<rect x="120" y="200" width="240" height="30" fill="#e07b54"/><text x="240" y="219" font-size="12" fill="#fff" text-anchor="middle">最高位 → bank cluster</text>
+<rect x="360" y="200" width="300" height="30" fill="#9db8d2"/><text x="510" y="219" font-size="12" fill="#fff" text-anchor="middle">bank 内偏移</text>
+<rect x="660" y="200" width="220" height="30" fill="#8fbf7f"/><text x="770" y="219" font-size="12" fill="#fff" text-anchor="middle">最低 2 bit → 簇内 bank</text>
+<text x="20" y="275" font-size="12.5" fill="#555">规律：cluster 用 VA 最高位选（顺序、省电），簇内 bank 用 VA 最低位选（交织、并发）。</text>
+<text x="20" y="297" font-size="12.5" fill="#555">size 越大 → 并发 bank 越多 → 带宽越高、瞬时功耗越大；size 由编译器按 tensor 特性决定并随请求下发。</text>
+</svg>
+</div>
+
+<h3>4.3 编译器驱动的分配策略</h3>
+<p>cluster size 不是运行时猜的，而是<b>编译器在编译期</b>（FIG.14 流程）为每个 tensor 决定的，依据包括：</p>
+<ul>
+<li><b>计算类型</b>：GEMM / attention / shuffle / transpose 的访问模式不同；</li>
+<li><b>执行部件</b>：AI 加速器要满带宽（大 cluster），近存处理器需求低（小 cluster）；</li>
+<li><b>数据精度</b>：4bit 与 8bit tensor 每字节信息量不同，影响 bank 排布（FIG.7 / FIG.8 分别给出 4b、8b 张量的分配实例，如 PQK 张量、HWC 输入）。</li>
+</ul>
+
+<div class="fig"><img src="figs/web/dyn_fig07.png" alt="4bit tensor 分配"><div class="cap">图 4-c（原专利 FIG.7）：4bit 精度张量在 bank cluster 上的分配示例</div></div>
+<div class="fig"><img src="figs/web/dyn_fig08.png" alt="8bit tensor 分配"><div class="cap">图 4-d（原专利 FIG.8）：8bit 精度张量的分配示例</div></div>
+
+<p>两个典型算子的 bank 编排：</p>
+<ul>
+<li><b>Shuffle</b>（FIG.12）：利用 Bank3 作为中间存储完成数据重排，避免额外 buffer；</li>
+<li><b>Transpose</b>（FIG.13）：把 P→Q→K 布局变成 B→K→C，通过 cluster 映射让转置后的访问仍然 bank 友好。</li>
+</ul>
+<div class="grid2">
+<div class="fig"><img src="figs/web/dyn_fig12.png" alt="shuffle"><div class="cap">图 4-e（原专利 FIG.12）：shuffle 的 bank 编排</div></div>
+<div class="fig"><img src="figs/web/dyn_fig13.png" alt="transpose"><div class="cap">图 4-f（原专利 FIG.13）：transpose 的 bank 编排</div></div>
+</div>
+
+<div class="fig"><img src="figs/web/dyn_fig14.png" alt="编译流程"><div class="cap">图 4-g（原专利 FIG.14）：编译期决定每个 tensor cluster size 的流程</div></div>
+
+<h3>4.4 执行期：用不到的 bank 直接休眠</h3>
+<p>control processor 按当前活跃 tensor 的 cluster 占用情况，把<b>没被任何活跃 cluster 用到的 bank 置为 retention / idle 低功耗态</b>，需要时再唤醒 —— 这是 Y02D10（节能计算）分类的由来。地址翻译侧，FIG.16 给出 VA→PA 的完整流程：请求携带的 cluster size 参与物理 bank 号与 bank 内偏移的生成。</p>
+<div class="grid2">
+<div class="fig"><img src="figs/web/dyn_fig15.png" alt="执行流程"><div class="cap">图 4-h（原专利 FIG.15）：执行期流程（含 bank 功耗状态切换）</div></div>
+<div class="fig"><img src="figs/web/dyn_fig16.png" alt="地址翻译流程"><div class="cap">图 4-i（原专利 FIG.16）：VA→PA 地址翻译流程</div></div>
+</div>
+
+<div class="key"><b>定位</b>：把前三篇的"地址映射即策略"思想推进到<b>片上 SRAM 的 bank 级</b>，并且首次把<b>功耗</b>作为一等目标：locality 不只为了快，也为了省电。与 199 的共同点是"软件声明、硬件解释"；区别是粒度从 64MB chunk 缩到单个请求，控制者从运行时（RM/CUDA）换成编译器。</div>
+</section>
+
+<!-- ============ 第 5 节 ============ -->
+<section id="sec5">
+<h2>5. 四篇对比与综合分析</h2>
+
+<h3>5.1 总对比表</h3>
+<table class="card">
+<tr><th></th><th>US10909033B1<br>内存分区映射</th><th>US20210157651A1<br>MIG 系统</th><th>US20250078199A1<br>uGPU Localized Mode</th><th>US20260227917A1<br>动态 Bank Cluster</th></tr>
+<tr><td><b>核心目标</b></td><td>切得干净：任意大小分区＋跨器件条带化共存</td><td>隔得彻底：一颗 GPU 变多颗，互不干扰</td><td>贴得够近：数据与计算锁在同一 die</td><td>宽省电两相宜：带宽/功耗按 tensor 定制</td></tr>
+<tr><td><b>作用层级</b></td><td>DRAM 器件 / L2 slice 映射</td><td>整卡系统（SM/L2/DRAM/引擎）</td><td>多 die 间（uGPU 级）</td><td>片上 SRAM bank 级</td></tr>
+<tr><td><b>最小粒度</b></td><td>common boundary 对齐的块</td><td>DRAM 三段＋L2 slice 子集</td><td>64MB chunk（32MB 子分配）</td><td>单个访存请求</td></tr>
+<tr><td><b>模式载体</b></td><td>AMU 映射表</td><td>11-bit swizID（位 OR 合成）</td><td>PTE 高位 1 bit（LOCALIZATION_MODE）</td><td>请求携带的 cluster size 字段</td></tr>
+<tr><td><b>控制者</b></td><td>驱动 / 固件配置</td><td>Hypervisor / 驱动</td><td>CUDA API ＋ RM 运行时</td><td>编译器（编译期决策）</td></tr>
+<tr><td><b>隔离 / locality</b></td><td>为隔离提供映射数学</td><td>隔离（多租户 QoS）</td><td>locality（性能）</td><td>locality（性能＋功耗）</td></tr>
+<tr><td><b>硬件改动</b></td><td>AMAP/AMU 映射逻辑</td><td>AMAP＋VASID＋throttle＋PRI 等系统级</td><td>MMU/FLA/XAL 各加 1 bit</td><td>存储控制器＋bank 功耗门控</td></tr>
+</table>
+
+<h3>5.2 机制栈：四篇专利各自卡在哪一层</h3>
+<div class="svgbox">
+<div class="cap">自绘图 5-1：GPGPU 地址路径分层与各专利的作用点</div>
+<svg viewBox="0 0 980 470" xmlns="http://www.w3.org/2000/svg" font-family="Microsoft YaHei, sans-serif">
+<defs><marker id="arr5" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#666"/></marker></defs>
+<!-- stack layers -->
+<g font-size="13" text-anchor="middle">
+<rect x="60" y="30" width="420" height="46" rx="8" fill="#eef3fa" stroke="#5b8dd9"/><text x="270" y="58" fill="#1a3a6b">应用 / 编译器（kernel、tensor、算子）</text>
+<rect x="60" y="90" width="420" height="46" rx="8" fill="#eef3fa" stroke="#5b8dd9"/><text x="270" y="118" fill="#1a3a6b">CUDA / RM（cudaMalloc、属性、子分配）</text>
+<rect x="60" y="150" width="420" height="46" rx="8" fill="#fdf3ee" stroke="#e07b54"/><text x="270" y="178" fill="#7a3416">Hypervisor / 驱动（分区配置、VM 绑定）</text>
+<rect x="60" y="210" width="420" height="46" rx="8" fill="#eef7ee" stroke="#5a9e55"/><text x="270" y="238" fill="#245423">MMU / PTE / AMAP / AMU（地址翻译与映射）</text>
+<rect x="60" y="270" width="420" height="46" rx="8" fill="#f5f0fa" stroke="#8a63c0"/><text x="270" y="298" fill="#4a2a7a">XBAR 交叉开关</text>
+<rect x="60" y="330" width="420" height="46" rx="8" fill="#f5f0fa" stroke="#8a63c0"/><text x="270" y="358" fill="#4a2a7a">L2（LTC slice）</text>
+<rect x="60" y="390" width="420" height="46" rx="8" fill="#f9f6ee" stroke="#c0a040"/><text x="270" y="418" fill="#6b5616">DRAM / HBM / 片上 Scratchpad Bank</text>
+</g>
+<line x1="270" y1="76" x2="270" y2="90" stroke="#666" stroke-width="1.4" marker-end="url(#arr5)"/>
+<line x1="270" y1="136" x2="270" y2="150" stroke="#666" stroke-width="1.4" marker-end="url(#arr5)"/>
+<line x1="270" y1="196" x2="270" y2="210" stroke="#666" stroke-width="1.4" marker-end="url(#arr5)"/>
+<line x1="270" y1="256" x2="270" y2="270" stroke="#666" stroke-width="1.4" marker-end="url(#arr5)"/>
+<line x1="270" y1="316" x2="270" y2="330" stroke="#666" stroke-width="1.4" marker-end="url(#arr5)"/>
+<line x1="270" y1="376" x2="270" y2="390" stroke="#666" stroke-width="1.4" marker-end="url(#arr5)"/>
+<!-- annotations -->
+<g font-size="12.5" fill="#333">
+<line x1="480" y1="53" x2="560" y2="53" stroke="#8a63c0" stroke-width="1.2"/><text x="568" y="57">④ US…917：编译器按 tensor 定 cluster size</text>
+<line x1="480" y1="113" x2="560" y2="113" stroke="#5b8dd9" stroke-width="1.2"/><text x="568" y="117">③ US…199：cudaMalloc localization 属性、RM 32MB 子分配</text>
+<line x1="480" y1="173" x2="560" y2="173" stroke="#e07b54" stroke-width="1.2"/><text x="568" y="177">② US…651：PPU/SMC 分区配置、GFID/SR-IOV、迁移</text>
+<line x1="480" y1="233" x2="560" y2="233" stroke="#5a9e55" stroke-width="1.2"/><text x="568" y="237">① US…033：AMU 三段映射＋common boundary</text>
+<text x="568" y="262">② swizID→AMAP 只散布本分区；③ PTE mode bit</text>
+<line x1="480" y1="293" x2="560" y2="293" stroke="#8a63c0" stroke-width="1.2"/><text x="568" y="297">② 故障隔离（VASID/PRI 重映射）</text>
+<line x1="480" y1="353" x2="560" y2="353" stroke="#8a63c0" stroke-width="1.2"/><text x="568" y="357">② L2 slice 按 swizID 划入分区；③ 避免跨 die 双份缓存</text>
+<line x1="480" y1="413" x2="560" y2="413" stroke="#c0a040" stroke-width="1.2"/><text x="568" y="417">① 跨器件条带＋垂直分区共存；④ bank 交织/休眠</text>
+</g>
+<text x="60" y="458" font-size="12" fill="#888">① US10909033B1　② US20210157651A1（MIG）　③ US20250078199A1　④ US20260227917A1</text>
+</svg>
+</div>
+
+<h3>5.3 演进脉络与谱系</h3>
+<ul>
+<li><b>映射数学先行（033，2017 前后申请）</b>：先解决"任意大小分区＋条带化共存、边界干净、支持非 2 幂器件数"这个纯几何问题；</li>
+<li><b>系统隔离落地（651，MIG）</b>：把映射能力包装成多租户系统 —— 两级分区、swizID 位 OR 合成配置、AMAP 限制散布范围、VASID/PRI 故障隔离、throttle 限带宽、soft floorsweeping 迁移；</li>
+<li><b>locality 反哺（199）</b>：多 die 时代，交织带来的带宽收益被 C2C 惩罚抵消，于是同一个 AMAP 框架里长出"反向"能力 —— 不交织、钉在本地。发明人 Kun Fang 同时出现在 033 与 199 上，199 引用的 swizzle 专利族也与 033 同源，谱系清晰；</li>
+<li><b>粒度收束到 bank＋功耗（917）</b>：同一思想进入片上存储，决策权上移到编译器，目标函数从纯性能变成性能/功耗联合。</li>
+</ul>
+
+<h3>5.4 回到"MIG DDR 地址隔离 ＆ 地址 locality"</h3>
+<div class="key">
+<p><b>MIG DDR 地址隔离 = 651 的系统机制 × 033 的映射数学。</b>651 负责"谁配、配多大、故障怎么挡、带宽怎么限"（PPU/SMC 两级分区、本地/全局 VASID、fault ID 翻译、throttle counter）；033 负责"切出来的每个分区地址怎么映射才不互相踩踏、还能与非 2 幂器件数和条带化共存"（common boundary、零头按比例借位、黑名单缓冲最小化）。651 的 AMAP 用分区自身 swizID 把地址只散布到本分区 L2 slice，同时解决隔离与缓存 camping，是两者咬合的接口。</p>
+<p><b>地址 locality = 199（uGPU 级）＋ 917（bank 级）。</b>199 把 locality 做进统一地址空间：PTE 借 1 bit，64MB chunk 逐块在"带宽交织"与"本地钉住"之间选择，配合 GPC affinity 让计算与数据同 die；917 把 locality 做进片上 SRAM：cluster 内交织保带宽、cluster 间顺序省电，编译器按 tensor 定宽度，闲置 bank 直接休眠。</p>
+<p><b>贯穿四篇的设计启示</b>：① 把模式当<b>地址属性</b>编码（swizID 高位、PTE 高位、请求的 size 字段），让路径上每一级硬件"只看地址就知道怎么做"，无需额外带外协商；② swizzle 不只是性能技巧，反过来限定散布范围就是隔离工具；③ 边界对齐（common boundary / 64MB chunk / cluster 边界）是一切动态重配的前提；④ 软件可编程映射永远优于改物理互连 —— 四篇专利没有一篇需要改动存储器件本身。</p>
+</div>
+
+<div class="warn"><b>阅读提示</b>：以上整理基于各专利的公开文本与附图，自绘图（图 0-1、1-1、1-2、2-1、3-1、4-1、5-1）为帮助理解的示意图，并非专利原图；涉及法律范围（权利要求解释）时请以原文为准。</div>
+</section>
+
+<footer>
+<p>GPGPU MIG / 地址隔离与 locality 专利技术分析 ｜ 整理自 USPTO 公开文本：US20210157651A1、US10909033B1、US20250078199A1、US20260227917A1 ｜ 生成于 2026-11-05</p>
+</footer>
+</main>
+</body>
+</html>
