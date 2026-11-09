@@ -384,6 +384,57 @@ $$
   <tr><td>步骤 ②（点积）</td><td>每个历史 token 再算 $q_i^{\top}(\cdots)$（$16384$ 维点积）</td><td>每个历史 token 只算 $(\cdots)\,\mathbf{c}_j^{KV}$（$512$ 维点积）</td></tr>
   <tr><td>$n = 100$ 个历史 token</td><td>昂贵的大矩阵乘 ① 重复 100 次</td><td class="hl">① 只做 1 次，约省 100 倍计算量</td></tr>
 </table>
+<figure>
+<div class="svg-box">
+<svg viewBox="0 0 860 330" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="PingFang SC, Microsoft YaHei, sans-serif">
+  <defs>
+    <marker id="arr-m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#334155"/>
+    </marker>
+  </defs>
+  <!-- 方案 A -->
+  <text x="10" y="56" font-size="14" font-weight="700" fill="#b91c1c">方案 A：合并进 Key 侧 —— 大矩阵乘随 n 重复</text>
+  <rect x="140" y="75" width="110" height="36" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="140" y="75" width="110" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d;font-size:12px">\(\mathbf{c}_j^{KV}\)（512 维）</div></foreignObject>
+  <line x1="250" y1="93" x2="292" y2="93" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-m)"/>
+  <!-- 重复堆叠效果 -->
+  <rect x="308" y="57" width="210" height="56" rx="8" fill="#ede9fe" stroke="#7c3aed" opacity="0.35"/>
+  <rect x="302" y="63" width="210" height="56" rx="8" fill="#ede9fe" stroke="#7c3aed" opacity="0.6"/>
+  <rect x="296" y="69" width="210" height="56" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+  <foreignObject x="296" y="73" width="210" height="22"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:13px;font-weight:700">\(W^{UK}\,\mathbf{c}_j^{KV}\)</div></foreignObject>
+  <foreignObject x="296" y="95" width="210" height="20"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:11px">\(16384 \times 512\) 大矩阵乘</div></foreignObject>
+  <rect x="470" y="38" width="80" height="24" rx="12" fill="#fee2e2" stroke="#dc2626"/>
+  <foreignObject x="470" y="38" width="80" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#b91c1c;font-size:12px;font-weight:700">× n 次</div></foreignObject>
+  <line x1="512" y1="97" x2="546" y2="97" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-m)"/>
+  <rect x="548" y="75" width="120" height="36" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="548" y="75" width="120" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:12px">\(\mathbf{k}_j\)（16384 维）</div></foreignObject>
+  <line x1="668" y1="93" x2="698" y2="93" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-m)"/>
+  <rect x="700" y="75" width="150" height="36" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+  <foreignObject x="700" y="75" width="150" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:11.5px">与 \(q_i\) 点积（16384 维）</div></foreignObject>
+
+  <!-- 方案 B -->
+  <text x="10" y="206" font-size="14" font-weight="700" fill="#047857">方案 B：合并进 Query 侧 —— 大矩阵乘只做 1 次（MLA 的选择 ✓）</text>
+  <rect x="140" y="225" width="110" height="36" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="140" y="225" width="110" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:12px">\(q_i^{\top}\)（16384 维）</div></foreignObject>
+  <line x1="250" y1="243" x2="292" y2="243" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-m)"/>
+  <rect x="296" y="219" width="210" height="56" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+  <foreignObject x="296" y="223" width="210" height="22"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:13px;font-weight:700">\(q_i^{\top}\,W^{UK}\)</div></foreignObject>
+  <foreignObject x="296" y="245" width="210" height="20"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:11px">\(16384 \times 512\) 大矩阵乘</div></foreignObject>
+  <rect x="470" y="188" width="80" height="24" rx="12" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="470" y="188" width="80" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#047857;font-size:12px;font-weight:700">× 1 次</div></foreignObject>
+  <line x1="506" y1="247" x2="546" y2="247" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-m)"/>
+  <rect x="548" y="225" width="120" height="36" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="548" y="225" width="120" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d;font-size:12px">\(\tilde{q}\)（512 维）</div></foreignObject>
+  <line x1="668" y1="243" x2="698" y2="243" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-m)"/>
+  <rect x="700" y="225" width="150" height="36" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="700" y="225" width="150" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d;font-size:11.5px">与每个 \(\mathbf{c}_j^{KV}\) 点积（512 维 × n）</div></foreignObject>
+
+  <!-- 底部结论 -->
+  <text x="430" y="312" font-size="13" font-weight="700" text-anchor="middle" fill="#047857">n = 100 时：方案 A 的大矩阵乘 = 100 次；方案 B = 1 次大矩阵乘 + 100 次小点积 → 约省 100 倍</text>
+</svg>
+</div>
+<figcaption>图 3-3 ｜ 矩阵吸收的两种结合顺序（自绘）。方案 A 把 $W^{UK}$ 合并进 Key 侧，$16384 \times 512$ 的大矩阵乘随历史 token 数 $n$ 重复（堆叠效果表示重复 $n$ 次）；方案 B 合并进 Query 侧，大矩阵乘只做 1 次，历史 token 只剩 512 维小点积——$n=100$ 时约省 100 倍。</figcaption>
+</figure>
 <p>所以 MLA 选择方案 B：昂贵的合并矩阵乘只对当前 Query 做一次，历史 token 侧永远只接触 512 维的压缩向量。<strong>低秩压缩负责省显存，选对边的矩阵吸收负责省算力</strong>——两者叠加，才同时解决了 1.1 节的两个瓶颈。</p>
 
 <h4>3.3.2 Value 吸收：输出侧的同样把戏</h4>
@@ -471,7 +522,7 @@ $$
   <line x1="370" y1="504" x2="370" y2="538" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
 </svg>
 </div>
-<figcaption>图 3-3 ｜ MLA 推理模式（自绘矢量图）：紫色虚线框为<strong>离线合并</strong>矩阵 $(W^{UQ})^{\top}W^{UK}$，K 侧直接复用缓存的 $\mathbf{c}^{KV}$，无需解压；输出侧 $W^{UV}$ 与 $W^O$ 同样预先合并；黄色为解耦 RoPE 位置路径，与内容路径拼接后共同计算注意力分数。</figcaption>
+<figcaption>图 3-4 ｜ MLA 推理模式（自绘矢量图）：紫色虚线框为<strong>离线合并</strong>矩阵 $(W^{UQ})^{\top}W^{UK}$，K 侧直接复用缓存的 $\mathbf{c}^{KV}$，无需解压；输出侧 $W^{UV}$ 与 $W^O$ 同样预先合并；黄色为解耦 RoPE 位置路径，与内容路径拼接后共同计算注意力分数。</figcaption>
 </figure>
 
 <h3 id="s3-4">3.4 解耦 RoPE（Decoupled RoPE）</h3>
@@ -561,7 +612,7 @@ $$
   <foreignObject x="360" y="426" width="200" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#0f172a;font-size:13.5px">输出 \(\mathbf{u}_t\)（\(d=5120\)）</div></foreignObject>
 </svg>
 </div>
-<figcaption>图 3-4 ｜ MLA 推理模式数据流（自绘）。虚线红框是真正要写入 KV Cache 的内容；绿色/蓝色为「内容路径」（可矩阵吸收），黄色为「RoPE 位置路径」（各头共享、单独缓存）。</figcaption>
+<figcaption>图 3-5 ｜ MLA 推理模式数据流（自绘）。虚线红框是真正要写入 KV Cache 的内容；绿色/蓝色为「内容路径」（可矩阵吸收），黄色为「RoPE 位置路径」（各头共享、单独缓存）。</figcaption>
 </figure>
 <p>把推理时一个 token 的完整流程按顺序写出来：</p>
 <ol>
@@ -646,7 +697,7 @@ $$
   <line x1="675" y1="405" x2="500" y2="453" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
 </svg>
 </div>
-<figcaption>图 3-5 ｜ MLA 训练模式（自绘矢量图）：Q 走 c^Q → W^UQ，K、V 共享 c^KV 后分别经 W^UK / W^UV <strong>显式解压</strong>（训练时保留各头独立的上投影梯度，不做矩阵合并）；Q、K 拼接黄色 RoPE 部分（R），V 不参与位置编码。与图 3-3 对照可直观理解「训练像 MHA、推理像 MQA」。</figcaption>
+<figcaption>图 3-6 ｜ MLA 训练模式（自绘矢量图）：Q 走 c^Q → W^UQ，K、V 共享 c^KV 后分别经 W^UK / W^UV <strong>显式解压</strong>（训练时保留各头独立的上投影梯度，不做矩阵合并）；Q、K 拼接黄色 RoPE 部分（R），V 不参与位置编码。与图 3-4 对照可直观理解「训练像 MHA、推理像 MQA」。</figcaption>
 </figure>
 
 <!-- ================= 第四章 ================= -->
