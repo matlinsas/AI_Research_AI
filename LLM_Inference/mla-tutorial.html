@@ -533,6 +533,45 @@ $$
   \left(\mathrm{RoPE}_j(W_i^{UK}\mathbf{c}_j^{KV})\right)
 $$
 <p>RoPE 是一个<strong>依赖位置 $j$ 的旋转矩阵</strong>，插在 $W^{UK}$ 和 $\mathbf{c}_j^{KV}$ 之间：$\mathrm{RoPE}_j\, W_i^{UK}\, \mathbf{c}_j^{KV}$。由于 $\mathrm{RoPE}_j$ 逐位置不同，它无法被吸进离线合并的矩阵里——矩阵吸收失效了。</p>
+<figure>
+<div class="svg-box">
+<svg viewBox="0 0 860 360" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="PingFang SC, Microsoft YaHei, sans-serif">
+  <text x="10" y="28" font-size="15" font-weight="700" fill="#1f2329">RoPE 如何破坏矩阵吸收：注意力分数中的每一项 \(\,q_i \cdot k_j\)</text>
+  <!-- 通项链条 -->
+  <rect x="90" y="55" width="110" height="40" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="90" y="55" width="110" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:14px">\(q_i^{\top}\)</div></foreignObject>
+  <text x="212" y="80" font-size="18" fill="#64748b">·</text>
+  <rect x="240" y="55" width="150" height="40" rx="8" fill="#fee2e2" stroke="#dc2626" stroke-dasharray="6 4"/>
+  <foreignObject x="240" y="55" width="150" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#b91c1c;font-size:14px;font-weight:700">\(\mathrm{RoPE}(j-i)\)</div></foreignObject>
+  <text x="402" y="80" font-size="18" fill="#64748b">·</text>
+  <rect x="430" y="55" width="120" height="40" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+  <foreignObject x="430" y="55" width="120" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:14px">\(W^{UK}\)</div></foreignObject>
+  <text x="562" y="80" font-size="18" fill="#64748b">·</text>
+  <rect x="590" y="55" width="140" height="40" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="590" y="55" width="140" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d;font-size:14px">\(\mathbf{c}_j^{KV}\)</div></foreignObject>
+  <text x="315" y="118" font-size="12" text-anchor="middle" fill="#b91c1c">▲ 位置 j 相关，逐 token 不同 → 无法离线合并</text>
+  <!-- 逐位置展开 -->
+  <text x="60" y="170" font-size="13" font-weight="700" fill="#374151">j = 1</text>
+  <rect x="140" y="150" width="460" height="40" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+  <foreignObject x="140" y="150" width="460" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1f2329;font-size:13px">\(q_i^{\top}\ {\color{#b91c1c}{\mathrm{RoPE}(1-i)}}\ W^{UK}\ \mathbf{c}_1^{KV}\)</div></foreignObject>
+  <text x="620" y="175" font-size="12" fill="#6b7280">这一份旋转……</text>
+
+  <text x="60" y="230" font-size="13" font-weight="700" fill="#374151">j = 2</text>
+  <rect x="140" y="210" width="460" height="40" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+  <foreignObject x="140" y="210" width="460" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1f2329;font-size:13px">\(q_i^{\top}\ {\color{#b91c1c}{\mathrm{RoPE}(2-i)}}\ W^{UK}\ \mathbf{c}_2^{KV}\)</div></foreignObject>
+  <text x="620" y="235" font-size="12" fill="#6b7280">又一份不同的旋转……</text>
+
+  <text x="60" y="290" font-size="13" font-weight="700" fill="#374151">j = n</text>
+  <rect x="140" y="270" width="460" height="40" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+  <foreignObject x="140" y="270" width="460" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1f2329;font-size:13px">\(q_i^{\top}\ {\color{#b91c1c}{\mathrm{RoPE}(n-i)}}\ W^{UK}\ \mathbf{c}_n^{KV}\)</div></foreignObject>
+  <text x="620" y="295" font-size="12" fill="#b91c1c">每个位置都不同 ✗</text>
+  <!-- 结论 -->
+  <rect x="90" y="318" width="680" height="36" rx="8" fill="#fffbeb" stroke="#b45309"/>
+  <foreignObject x="90" y="318" width="680" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#92400e;font-size:12.5px">旋转矩阵插在 \(q_i\) 与 \(W^{UK}\) 之间且逐位置不同 → 无法预先合并 → 点积被迫回到 16384 维原始维度计算</div></foreignObject>
+</svg>
+</div>
+<figcaption>图 3-5 ｜ RoPE 破坏矩阵吸收的机理（自绘）。利用 $\mathrm{RoPE}_i^{\top}\mathrm{RoPE}_j = \mathrm{RoPE}(j-i)$ 展开后，旋转矩阵 $\mathrm{RoPE}(j-i)$ 夹在 $q_i^{\top}$ 与 $W^{UK}$ 之间且随位置 $j$ 变化（红色），无法像 3.3 节那样离线合并——这正是 MLA 要把位置编码「解耦」出去的原因。</figcaption>
+</figure>
 <p>MLA 的解决方案是<strong>解耦</strong>：位置信息不走压缩路径，单独开一条小路：</p>
 $$
 \mathbf{k}_t^{R} = \mathrm{RoPE}_t\!\left(W^{KR} \mathbf{h}_t\right) \in \mathbb{R}^{d_h^{R}}
@@ -612,7 +651,7 @@ $$
   <foreignObject x="360" y="426" width="200" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#0f172a;font-size:13.5px">输出 \(\mathbf{u}_t\)（\(d=5120\)）</div></foreignObject>
 </svg>
 </div>
-<figcaption>图 3-5 ｜ MLA 推理模式数据流（自绘）。虚线红框是真正要写入 KV Cache 的内容；绿色/蓝色为「内容路径」（可矩阵吸收），黄色为「RoPE 位置路径」（各头共享、单独缓存）。</figcaption>
+<figcaption>图 3-6 ｜ MLA 推理模式数据流（自绘）。虚线红框是真正要写入 KV Cache 的内容；绿色/蓝色为「内容路径」（可矩阵吸收），黄色为「RoPE 位置路径」（各头共享、单独缓存）。</figcaption>
 </figure>
 <p>把推理时一个 token 的完整流程按顺序写出来：</p>
 <ol>
@@ -697,7 +736,7 @@ $$
   <line x1="675" y1="405" x2="500" y2="453" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
 </svg>
 </div>
-<figcaption>图 3-6 ｜ MLA 训练模式（自绘矢量图）：Q 走 c^Q → W^UQ，K、V 共享 c^KV 后分别经 W^UK / W^UV <strong>显式解压</strong>（训练时保留各头独立的上投影梯度，不做矩阵合并）；Q、K 拼接黄色 RoPE 部分（R），V 不参与位置编码。与图 3-4 对照可直观理解「训练像 MHA、推理像 MQA」。</figcaption>
+<figcaption>图 3-7 ｜ MLA 训练模式（自绘矢量图）：Q 走 c^Q → W^UQ，K、V 共享 c^KV 后分别经 W^UK / W^UV <strong>显式解压</strong>（训练时保留各头独立的上投影梯度，不做矩阵合并）；Q、K 拼接黄色 RoPE 部分（R），V 不参与位置编码。与图 3-4 对照可直观理解「训练像 MHA、推理像 MQA」。</figcaption>
 </figure>
 
 <!-- ================= 第四章 ================= -->
