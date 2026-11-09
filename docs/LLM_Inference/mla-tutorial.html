@@ -372,7 +372,33 @@ $$
   <li>Q 侧：$\tilde{\mathbf{q}}_{t,i} = \left(\left(W_i^{UQ}\right)^{\top} W_i^{UK}\right)^{\top} \mathbf{c}_t^{Q}$，维度 $d_c$；</li>
   <li>K 侧：<strong>直接用缓存的 $\mathbf{c}_j^{KV}$ 本身</strong>，无需上投影。</li>
 </ul>
-<p>同理，输出侧的 $\mathbf{v}_{j,i}^{C} = W_i^{UV} \mathbf{c}_j^{KV}$ 可以被 $W^O$「吸收」：$\mathbf{o}_{t,i} W_i^{UV}$ 与 $W^O$ 合并。这就是<strong>矩阵吸收</strong>——推理时的 MLA 在计算上等价于一个「Q 头维度 = $d_c$、K/V 共享为 $\mathbf{c}^{KV}$」的 MQA，计算量和访存量都极小。</p>
+<h4>3.3.1 吸收到哪一侧？结合律的账本</h4>
+<p>推理时要计算当前查询与全部历史键的点积 $q_i \cdot k_1, q_i \cdot k_2, \dots, q_i \cdot k_n$，其中每一项：</p>
+$$
+q_i^{\top} k_j = q_i^{\top} \left(W^{UK} \mathbf{c}_j^{KV}\right) = \left(q_i^{\top} W^{UK}\right) \mathbf{c}_j^{KV}
+$$
+<p>矩阵乘法满足结合律，但两种结合顺序的代价天差地别（代入 DeepSeek-V2 维度：$q_i^{\top}$ 为 $1 \times 16384$，$W^{UK}$ 为 $16384 \times 512$，$\mathbf{c}_j^{KV}$ 为 $512 \times 1$）：</p>
+<table>
+  <tr><th></th><th>方案 A：合并进 Key 侧</th><th>方案 B：合并进 Query 侧（MLA 的选择）</th></tr>
+  <tr><td>步骤 ①（大矩阵乘）</td><td><strong>每个历史 token</strong> 都要算 $W^{UK}\mathbf{c}_j^{KV}$（$16384 \times 512$ 矩阵乘向量）</td><td class="hl">整个解码步只算 1 次 $q_i^{\top}W^{UK}$（$1 \times 16384$ 乘 $16384 \times 512$）</td></tr>
+  <tr><td>步骤 ②（点积）</td><td>每个历史 token 再算 $q_i^{\top}(\cdots)$（$16384$ 维点积）</td><td>每个历史 token 只算 $(\cdots)\,\mathbf{c}_j^{KV}$（$512$ 维点积）</td></tr>
+  <tr><td>$n = 100$ 个历史 token</td><td>昂贵的大矩阵乘 ① 重复 100 次</td><td class="hl">① 只做 1 次，约省 100 倍计算量</td></tr>
+</table>
+<p>所以 MLA 选择方案 B：昂贵的合并矩阵乘只对当前 Query 做一次，历史 token 侧永远只接触 512 维的压缩向量。<strong>低秩压缩负责省显存，选对边的矩阵吸收负责省算力</strong>——两者叠加，才同时解决了 1.1 节的两个瓶颈。</p>
+
+<h4>3.3.2 Value 吸收：输出侧的同样把戏</h4>
+<p>softmax 之后的加权求和，可以把 $W^{UV}$ 同样提到求和号外面：</p>
+$$
+\mathbf{o}_{t,i} = \sum_{j} A(i,j)\, \mathbf{v}_{j,i}^{C}
+= \sum_{j} A(i,j)\, W_i^{UV} \mathbf{c}_j^{KV}
+= W_i^{UV} \underbrace{\sum_{j} A(i,j)\, \mathbf{c}_j^{KV}}_{512\ \text{维}}
+$$
+<p>即<strong>先对 512 维的压缩向量加权求和，最后一次性上投影</strong>，而不是先把每个 $\mathbf{v}_j$ 解压成 16384 维再加权。再乘输出矩阵 $W^O$ 时，$W_i^{UV}$ 又可以被 $W^O$ 吸收：</p>
+$$
+\mathbf{u}_t = W^{O}\, \mathbf{o}_{t,i} = \underbrace{\left(W^{O} W_i^{UV}\right)}_{\text{可离线预先合并}}\; \sum_{j} A(i,j)\, \mathbf{c}_j^{KV}
+$$
+<div class="callout key"><span class="tag">合并规律</span>$W^{UK}$ 与 $W^{UQ}$ 预先合并（Query 侧），$W^{UV}$ 与 $W^{O}$ 预先合并（输出侧）——推理时<strong>上投影不再单独计算</strong>，KV Cache 里始终只有 $\mathbf{c}^{KV}$ 和 $\mathbf{k}^R$ 两个小向量。这就是矩阵吸收的全部内容。</div>
+<p>至此可以看到矩阵吸收的完整图景：推理时的 MLA 在计算上等价于一个「Q 头维度 = $d_c$、K/V 共享为 $\mathbf{c}^{KV}$」的 MQA，计算量和访存量都极小。</p>
 <div class="callout"><span class="tag">直觉</span>训练时 MLA 表现为 MHA（每个头有独立的上投影矩阵，表达力强）；推理时通过矩阵吸收塌缩为 MQA（Cache 小、访存少）。<strong>训练像 MHA，推理像 MQA</strong>——这就是 MLA「两头通吃」的原因。</div>
 <figure>
 <div class="svg-box">
@@ -835,6 +861,7 @@ $$
   <li>Shazeer, N. <em>Fast Transformer Decoding: One Write-Head is All You Need</em>. arXiv:1911.02150, 2019.（MQA）</li>
   <li>Ainslie, J. et al. <em>GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints</em>. arXiv:2305.13245, 2023.</li>
   <li>Su, J. et al. <em>RoFormer: Enhanced Transformer with Rotary Position Embedding</em>. arXiv:2104.09864, 2021.（RoPE）</li>
+  <li>zhangchitc. <em>MLA 可视化图解</em>（交互式可视化教程）. zhangchitc.github.io/codex/085_mla/visual.html.（3.3.1 吸收选边账本与 3.3.2 Value 吸收的推导参考）</li>
 </ul>
 
 </main>
