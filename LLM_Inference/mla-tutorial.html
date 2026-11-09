@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLA（Multi-head Latent Attention）完全教程 —— DeepSeek 的高效注意力机制</title>
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<style>
+  :root {
+    --ink: #1f2329;
+    --muted: #6b7280;
+    --accent: #2563eb;
+    --accent-soft: #eff6ff;
+    --teal: #0d9488;
+    --amber: #b45309;
+    --line: #e5e7eb;
+    --bg-soft: #f8fafc;
+    --code-bg: #0f172a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; color: var(--ink);
+    font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.85; background: #ffffff;
+  }
+  .hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #0d9488 100%);
+    color: #fff; padding: 72px 24px 56px; text-align: center;
+  }
+  .hero h1 { font-size: 2.4rem; margin: 0 0 12px; letter-spacing: 1px; }
+  .hero p.sub { font-size: 1.1rem; opacity: .85; margin: 0 auto; max-width: 720px; }
+  .hero .badges { margin-top: 22px; }
+  .hero .badge {
+    display: inline-block; border: 1px solid rgba(255,255,255,.4); border-radius: 999px;
+    padding: 4px 16px; margin: 4px 6px; font-size: .85rem; opacity: .9;
+  }
+  .layout { max-width: 1200px; margin: 0 auto; display: flex; gap: 40px; padding: 40px 24px 80px; }
+  nav.toc {
+    flex: 0 0 240px; position: sticky; top: 32px; align-self: flex-start;
+    font-size: .88rem; border-left: 3px solid var(--line); padding-left: 16px;
+    max-height: calc(100vh - 64px); overflow-y: auto;
+  }
+  nav.toc a { display: block; color: var(--muted); text-decoration: none; padding: 3px 0; }
+  nav.toc a:hover { color: var(--accent); }
+  nav.toc a.l1 { font-weight: 600; color: var(--ink); margin-top: 10px; }
+  nav.toc a.l2 { padding-left: 14px; }
+  main { flex: 1; min-width: 0; max-width: 860px; }
+  h2.chapter {
+    font-size: 1.7rem; margin: 64px 0 8px; padding-top: 16px;
+    border-top: 2px solid var(--line);
+  }
+  h2.chapter .no { color: var(--accent); margin-right: 10px; }
+  h3 { font-size: 1.22rem; margin: 36px 0 8px; color: #111827; }
+  h4 { font-size: 1.05rem; margin: 24px 0 6px; color: #374151; }
+  p { margin: 12px 0; }
+  figure { margin: 28px 0; text-align: center; }
+  figure img { max-width: 100%; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 4px 18px rgba(15,23,42,.08); }
+  figcaption { font-size: .85rem; color: var(--muted); margin-top: 10px; }
+  .callout {
+    border-left: 4px solid var(--accent); background: var(--accent-soft);
+    padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 20px 0; font-size: .95rem;
+  }
+  .callout.warn { border-color: var(--amber); background: #fffbeb; }
+  .callout.key { border-color: var(--teal); background: #f0fdfa; }
+  .callout .tag { font-weight: 700; margin-right: 6px; }
+  table { border-collapse: collapse; width: 100%; margin: 22px 0; font-size: .92rem; }
+  th, td { border: 1px solid var(--line); padding: 9px 12px; text-align: center; }
+  th { background: var(--bg-soft); font-weight: 600; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  td.hl { background: #ecfdf5 !important; font-weight: 700; color: #047857; }
+  pre {
+    background: var(--code-bg); color: #e2e8f0; padding: 18px 20px; border-radius: 10px;
+    overflow-x: auto; font-size: .85rem; line-height: 1.65;
+    font-family: "JetBrains Mono", Consolas, "Courier New", monospace;
+  }
+  pre .cm { color: #64748b; } pre .kw { color: #7dd3fc; } pre .fn { color: #fbbf24; }
+  code.inline, p code, li code, td code {
+    background: #f1f5f9; color: #be123c; padding: 1px 6px; border-radius: 5px;
+    font-family: "JetBrains Mono", Consolas, monospace; font-size: .88em;
+  }
+  .formula-note { font-size: .85rem; color: var(--muted); text-align: left; margin-top: -6px; }
+  ul, ol { padding-left: 24px; } li { margin: 5px 0; }
+  .svg-box { background: var(--bg-soft); border: 1px solid var(--line); border-radius: 10px; padding: 18px; overflow-x: auto; }
+  .svg-math { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 13.5px; line-height: 1.2; }
+  .svg-math mjx-container { margin: 0 !important; }
+  .refs { font-size: .9rem; color: var(--muted); }
+  .refs li { margin: 8px 0; }
+  a { color: var(--accent); }
+  footer { text-align: center; color: var(--muted); font-size: .85rem; padding: 40px 0; border-top: 1px solid var(--line); }
+  @media (max-width: 900px) { nav.toc { display: none; } .layout { padding: 24px 16px 60px; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>MLA 完全教程</h1>
+  <p class="sub">Multi-head Latent Attention（多头潜在注意力）—— DeepSeek-V2 / V3 / R1 背后的高效注意力机制：从 KV Cache 瓶颈到低秩压缩、矩阵吸收与解耦 RoPE</p>
+  <div class="badges">
+    <span class="badge">KV Cache</span><span class="badge">低秩压缩</span>
+    <span class="badge">矩阵吸收</span><span class="badge">解耦 RoPE</span><span class="badge">PyTorch 实现</span>
+  </div>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <a class="l1" href="#ch1">一、引言：为什么需要 MLA</a>
+  <a class="l2" href="#s1-1">1.1 KV Cache 瓶颈</a>
+  <a class="l2" href="#s1-2">1.2 现有方案：MHA→MQA→GQA</a>
+  <a class="l2" href="#s1-3">1.3 MLA 的定位</a>
+  <a class="l1" href="#ch2">二、前置知识回顾</a>
+  <a class="l2" href="#s2-1">2.1 MHA 与 KV Cache</a>
+  <a class="l2" href="#s2-2">2.2 MQA 与 GQA</a>
+  <a class="l2" href="#s2-3">2.3 低秩分解基础</a>
+  <a class="l1" href="#ch3">三、MLA 核心原理</a>
+  <a class="l2" href="#s3-1">3.1 核心思想</a>
+  <a class="l2" href="#s3-2">3.2 数学推导：KV 低秩联合压缩</a>
+  <a class="l2" href="#s3-3">3.3 矩阵吸收</a>
+  <a class="l2" href="#s3-4">3.4 解耦 RoPE</a>
+  <a class="l2" href="#s3-5">3.5 完整推理流程</a>
+  <a class="l1" href="#ch4">四、定量对比</a>
+  <a class="l1" href="#ch5">五、PyTorch 代码实现</a>
+  <a class="l2" href="#s5-1">5.1 从零实现</a>
+  <a class="l2" href="#s5-2">5.2 常见坑</a>
+  <a class="l1" href="#ch6">六、MLA 在实际模型中的应用</a>
+  <a class="l1" href="#ch7">七、延伸话题</a>
+</nav>
+
+<main>
+
+<!-- ================= 第一章 ================= -->
+<h2 class="chapter" id="ch1"><span class="no">一</span>引言：为什么需要 MLA</h2>
+
+<h3 id="s1-1">1.1 背景：大模型推理的成本瓶颈</h3>
+<p>大语言模型（LLM）的推理是<strong>自回归</strong>的：每生成一个新 token，都要把已有的全部上下文重新做一遍注意力。如果朴素实现，第 $t$ 步的计算量是 $O(t^2)$，生成 $N$ 个 token 的总代价将无法接受。</p>
+<p>工程上的标准解法是 <strong>KV Cache</strong>：把每一步算出的 Key、Value 向量缓存在显存里，新 token 只需要和缓存中所有历史 K/V 做一次注意力即可。这样每步的计算量降为 $O(t)$，但代价是——</p>
+<div class="callout warn"><span class="tag">问题</span>KV Cache 的大小随 <strong>序列长度 × batch size × 层数 × 注意力头数</strong> 线性膨胀。对于 128K 上下文、批量推理的服务场景，KV Cache 动辄占用几十甚至上百 GB 显存，成为部署的第一瓶颈。</div>
+<p>更关键的是，自回归解码每生成一个 token 都要把整份 KV Cache 从 HBM 读进计算单元——解码阶段是<strong>访存带宽受限（memory-bound）</strong>的。KV Cache 越大，单步延迟越高、吞吐越低。因此，<em>压缩 KV Cache = 同时省显存 + 提速</em>，一举两得。</p>
+
+<h3 id="s1-2">1.2 现有解决方案概览</h3>
+<p>在 MLA 之前，业界主流的 KV Cache 压缩路线是「减少 K/V 头的数量」：</p>
+<ul>
+  <li><strong>MQA（Multi-Query Attention）</strong>：所有查询头共享同一份 K/V。Cache 降到 $1/n_h$，但效果损失明显；</li>
+  <li><strong>GQA（Grouped-Query Attention）</strong>：折中方案，每 $n_h/n_g$ 个头共享一份 K/V，被 LLaMA-2/3 等广泛采用。</li>
+</ul>
+<p>这些方案的共同问题是：<strong>省显存和保效果是零和博弈</strong>——压缩越狠，能力掉得越多。</p>
+
+<h3 id="s1-3">1.3 MLA 的定位</h3>
+<p>MLA（Multi-head Latent Attention，多头潜在注意力）由 DeepSeek-V2（2024 年 5 月，arXiv:2405.04434）提出，思路完全不同：不砍头数，而是对所有头的 K/V 做<strong>低秩联合压缩</strong>，缓存一个远小于原始 K/V 的「潜在向量」（latent vector）。</p>
+<p>其结果是在 DeepSeek-V2 上实现了：</p>
+<figure>
+  <img src="images/paper_x2.png" alt="DeepSeek-V2 训练成本、KV Cache 与生成吞吐对比">
+  <figcaption>图 1-1 ｜ DeepSeek-V2 论文官方数据：相比 DeepSeek 67B，训练成本节省 42.5%，KV Cache 降低 93.3%，最大生成吞吐提升至 5.76 倍。（来源：DeepSeek-V2 论文 Figure 1，arXiv:2405.04434）</figcaption>
+</figure>
+<div class="callout key"><span class="tag">关键结论</span>MLA 的 KV Cache 占用与「只有 2.25 组的 GQA」相当，但模型效果<strong>不降反升，甚至优于标准 MHA</strong>。这是它被 DeepSeek-V3、R1 等一系列模型沿用至今的根本原因。</div>
+
+<!-- ================= 第二章 ================= -->
+<h2 class="chapter" id="ch2"><span class="no">二</span>前置知识回顾</h2>
+
+<h3 id="s2-1">2.1 标准多头注意力（MHA）与 KV Cache</h3>
+<p>设隐藏维度为 $d$，注意力头数为 $n_h$，每头维度 $d_h$（$d = n_h d_h$）。对位置 $t$ 的输入 $\mathbf{h}_t \in \mathbb{R}^d$，MHA 的计算为：</p>
+$$
+\mathbf{q}_{t,i} = \mathbf{h}_t W_i^{Q}, \quad
+\mathbf{k}_{t,i} = \mathbf{h}_t W_i^{K}, \quad
+\mathbf{v}_{t,i} = \mathbf{h}_t W_i^{V}, \quad i = 1, \dots, n_h
+$$
+$$
+\mathbf{o}_{t,i} = \sum_{j=1}^{t} \mathrm{softmax}_j\!\left(\frac{\mathbf{q}_{t,i} \mathbf{k}_{j,i}^{\top}}{\sqrt{d_h}}\right) \mathbf{v}_{j,i},
+\qquad
+\mathbf{u}_t = \left[\mathbf{o}_{t,1}; \dots; \mathbf{o}_{t,n_h}\right] W^{O}
+$$
+<p class="formula-note">其中 $W_i^{Q}, W_i^{K}, W_i^{V} \in \mathbb{R}^{d \times d_h}$，$W^O \in \mathbb{R}^{d \times d}$。</p>
+<p>推理时，所有历史位置的 $\mathbf{k}_{j,i}, \mathbf{v}_{j,i}$ 都要缓存。<strong>每 token、每层</strong>的 KV Cache 元素数为：</p>
+$$
+\boxed{\ \mathrm{Cache}_{\mathrm{MHA}} = 2 \, n_h \, d_h\ }
+$$
+
+<h3 id="s2-2">2.2 MQA 与 GQA</h3>
+<p>MQA 让全部 $n_h$ 个查询头共享<strong>一份</strong> K/V（Cache = $2 d_h$）；GQA 把 $n_h$ 个头分成 $n_g$ 组，组内共享（Cache = $2 n_g d_h$）。三种机制的对比：</p>
+<figure>
+<div class="svg-box">
+<svg viewBox="0 0 860 300" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="PingFang SC, Microsoft YaHei, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <!-- MHA -->
+  <text x="20" y="28" font-size="16" font-weight="700" fill="#1f2329">MHA（多头注意力）</text>
+  <text x="20" y="48" font-size="12" fill="#6b7280">每个 Q 头有独立的 K/V 头 · Cache = 2·n_h·d_h</text>
+  <g>
+    <rect x="40" y="70" width="34" height="34" rx="6" fill="#dbeafe" stroke="#2563eb"/><text x="57" y="92" font-size="13" text-anchor="middle" fill="#1e40af">Q₁</text>
+    <rect x="84" y="70" width="34" height="34" rx="6" fill="#dbeafe" stroke="#2563eb"/><text x="101" y="92" font-size="13" text-anchor="middle" fill="#1e40af">Q₂</text>
+    <rect x="128" y="70" width="34" height="34" rx="6" fill="#dbeafe" stroke="#2563eb"/><text x="145" y="92" font-size="13" text-anchor="middle" fill="#1e40af">Q₃</text>
+    <rect x="172" y="70" width="34" height="34" rx="6" fill="#dbeafe" stroke="#2563eb"/><text x="189" y="92" font-size="13" text-anchor="middle" fill="#1e40af">Q₄</text>
+    <rect x="40" y="150" width="34" height="34" rx="6" fill="#fee2e2" stroke="#dc2626"/><text x="57" y="172" font-size="13" text-anchor="middle" fill="#b91c1c">K₁</text>
+    <rect x="84" y="150" width="34" height="34" rx="6" fill="#fee2e2" stroke="#dc2626"/><text x="101" y="172" font-size="13" text-anchor="middle" fill="#b91c1c">K₂</text>
+    <rect x="128" y="150" width="34" height="34" rx="6" fill="#fee2e2" stroke="#dc2626"/><text x="145" y="172" font-size="13" text-anchor="middle" fill="#b91c1c">K₃</text>
+    <rect x="172" y="150" width="34" height="34" rx="6" fill="#fee2e2" stroke="#dc2626"/><text x="189" y="172" font-size="13" text-anchor="middle" fill="#b91c1c">K₄</text>
+    <rect x="40" y="214" width="34" height="34" rx="6" fill="#dcfce7" stroke="#16a34a"/><text x="57" y="236" font-size="13" text-anchor="middle" fill="#15803d">V₁</text>
+    <rect x="84" y="214" width="34" height="34" rx="6" fill="#dcfce7" stroke="#16a34a"/><text x="101" y="236" font-size="13" text-anchor="middle" fill="#15803d">V₂</text>
+    <rect x="128" y="214" width="34" height="34" rx="6" fill="#dcfce7" stroke="#16a34a"/><text x="145" y="236" font-size="13" text-anchor="middle" fill="#15803d">V₃</text>
+    <rect x="172" y="214" width="34" height="34" rx="6" fill="#dcfce7" stroke="#16a34a"/><text x="189" y="236" font-size="13" text-anchor="middle" fill="#15803d">V₄</text>
+    <line x1="57" y1="104" x2="57" y2="148" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+    <line x1="101" y1="104" x2="101" y2="148" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+    <line x1="145" y1="104" x2="145" y2="148" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+    <line x1="189" y1="104" x2="189" y2="148" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+  </g>
+  <!-- GQA -->
+  <text x="330" y="28" font-size="16" font-weight="700" fill="#1f2329">GQA（分组查询注意力）</text>
+  <text x="330" y="48" font-size="12" fill="#6b7280">组内共享 K/V · Cache = 2·n_g·d_h</text>
+  <g>
+    <rect x="350" y="70" width="34" height="34" rx="6" fill="#dbeafe" stroke="#2563eb"/><text x="367" y="92" font-size="13" text-anchor="middle" fill="#1e40af">Q₁</text>
+    <rect x="394" y="70" width="34" height="34" rx="6" fill="#dbeafe" stroke="#2563eb"/><text x="411" y="92" font-size="13" text-anchor="middle" fill="#1e40af">Q₂</text>
+    <rect x="438" y="70" width="34" height="34" rx="6" fill="#dbeafe" stroke="#2563eb"/><text x="455" y="92" font-size="13" text-anchor="middle" fill="#1e40af">Q₃</text>
+    <rect x="482" y="70" width="34" height="34" rx="6" fill="#dbeafe" stroke="#2563eb"/><text x="499" y="92" font-size="13" text-anchor="middle" fill="#1e40af">Q₄</text>
+    <rect x="372" y="150" width="34" height="34" rx="6" fill="#fee2e2" stroke="#dc2626"/><text x="389" y="172" font-size="13" text-anchor="middle" fill="#b91c1c">K₁</text>
+    <rect x="460" y="150" width="34" height="34" rx="6" fill="#fee2e2" stroke="#dc2626"/><text x="477" y="172" font-size="13" text-anchor="middle" fill="#b91c1c">K₂</text>
+    <rect x="372" y="214" width="34" height="34" rx="6" fill="#dcfce7" stroke="#16a34a"/><text x="389" y="236" font-size="13" text-anchor="middle" fill="#15803d">V₁</text>
+    <rect x="460" y="214" width="34" height="34" rx="6" fill="#dcfce7" stroke="#16a34a"/><text x="477" y="236" font-size="13" text-anchor="middle" fill="#15803d">V₂</text>
+    <line x1="367" y1="104" x2="386" y2="148" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+    <line x1="411" y1="104" x2="392" y2="148" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+    <line x1="455" y1="104" x2="474" y2="148" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+    <line x1="499" y1="104" x2="480" y2="148" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+  </g>
+  <!-- MQA -->
+  <text x="620" y="28" font-size="16" font-weight="700" fill="#1f2329">MQA（多查询注意力）</text>
+  <text x="620" y="48" font-size="12" fill="#6b7280">全部共享一份 K/V · Cache = 2·d_h</text>
+  <g>
+    <rect x="630" y="70" width="34" height="34" rx="6" fill="#dbeafe" stroke="#2563eb"/><text x="647" y="92" font-size="13" text-anchor="middle" fill="#1e40af">Q₁</text>
+    <rect x="674" y="70" width="34" height="34" rx="6" fill="#dbeafe" stroke="#2563eb"/><text x="691" y="92" font-size="13" text-anchor="middle" fill="#1e40af">Q₂</text>
+    <rect x="718" y="70" width="34" height="34" rx="6" fill="#dbeafe" stroke="#2563eb"/><text x="735" y="92" font-size="13" text-anchor="middle" fill="#1e40af">Q₃</text>
+    <rect x="762" y="70" width="34" height="34" rx="6" fill="#dbeafe" stroke="#2563eb"/><text x="779" y="92" font-size="13" text-anchor="middle" fill="#1e40af">Q₄</text>
+    <rect x="696" y="150" width="34" height="34" rx="6" fill="#fee2e2" stroke="#dc2626"/><text x="713" y="172" font-size="13" text-anchor="middle" fill="#b91c1c">K</text>
+    <rect x="696" y="214" width="34" height="34" rx="6" fill="#dcfce7" stroke="#16a34a"/><text x="713" y="236" font-size="13" text-anchor="middle" fill="#15803d">V</text>
+    <line x1="647" y1="104" x2="706" y2="148" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+    <line x1="691" y1="104" x2="710" y2="148" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+    <line x1="735" y1="104" x2="716" y2="148" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+    <line x1="779" y1="104" x2="722" y2="148" stroke="#64748b" stroke-width="1.4" marker-end="url(#arr)"/>
+  </g>
+</svg>
+</div>
+<figcaption>图 2-1 ｜ MHA / GQA / MQA 的头共享结构对比（自绘示意，以 4 个查询头为例）</figcaption>
+</figure>
+
+<h3 id="s2-3">2.3 低秩分解基础</h3>
+<p>一个 $d \times d$ 的满秩矩阵 $W$ 可以近似为两个小矩阵之积：$W \approx AB$，其中 $A \in \mathbb{R}^{d \times r}$，$B \in \mathbb{R}^{r \times d}$，$r \ll d$。参数量从 $d^2$ 降到 $2dr$。这正是 LoRA 的核心思想，直觉是：<strong>高维数据的有效信息往往集中在一个低维子空间里</strong>。</p>
+<p>MLA 把同样的思想用在 KV Cache 上：K 和 V 并不需要各自独立缓存——它们由同一个输入 $\mathbf{h}_t$ 生成，本身高度相关，可以被压缩到一个共享的低维潜在向量里，用时再「展开」回来。</p>
+
+<!-- ================= 第三章 ================= -->
+<h2 class="chapter" id="ch3"><span class="no">三</span>MLA 的核心原理</h2>
+
+<p>先看 DeepSeek-V2 论文的官方架构图（右下部分即 MLA）：</p>
+<figure>
+  <img src="images/paper_x3.png" alt="DeepSeek-V2 官方架构图：Transformer Block、DeepSeekMoE 与 MLA">
+  <figcaption>图 3-1 ｜ DeepSeek-V2 官方架构图。右下角为 MLA：输入 $\mathbf{h}_t$ 先被压缩为潜在向量 $\mathbf{c}_t^{KV}$（推理时仅需缓存它和带 RoPE 的 $\mathbf{k}_t^R$，图中斜线阴影标记），注意力计算时 Q、K 均由「压缩部分 + RoPE 部分」拼接而成。（来源：DeepSeek-V2 论文 Figure 2，arXiv:2405.04434）</figcaption>
+</figure>
+
+<h3 id="s3-1">3.1 核心思想：缓存「潜在向量」而不是 K/V 本身</h3>
+<p>一句话概括 MLA：</p>
+<div class="callout key"><span class="tag">核心思想</span>把输入 $\mathbf{h}_t$ 先<strong>压缩</strong>成一个低维潜在向量 $\mathbf{c}_t^{KV}$（维度 $d_c \ll n_h d_h$），推理时只缓存 $\mathbf{c}_t^{KV}$；注意力计算时再通过上投影矩阵把每个头的 K、V「解压」出来。由于 $\mathbf{c}_t^{KV}$ 同时承载所有头的 K 和 V 的信息，Cache 从 $2 n_h d_h$ 降到约 $d_c$。</div>
+<figure>
+<div class="svg-box">
+<svg viewBox="0 0 860 440" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="PingFang SC, Microsoft YaHei, sans-serif">
+  <defs>
+    <marker id="arr-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#334155"/>
+    </marker>
+  </defs>
+  <!-- 压缩区 -->
+  <rect x="60" y="70" width="740" height="205" rx="12" fill="none" stroke="#94a3b8" stroke-dasharray="7 5"/>
+  <text x="80" y="94" font-size="12" fill="#64748b">低秩压缩区（潜在向量）</text>
+  <!-- x -->
+  <rect x="365" y="8" width="130" height="38" rx="8" fill="#f1f5f9" stroke="#475569"/>
+  <foreignObject x="365" y="8" width="130" height="38"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#0f172a">输入 \(\mathbf{x}\)</div></foreignObject>
+  <line x1="400" y1="46" x2="175" y2="86" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <line x1="430" y1="46" x2="430" y2="86" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <line x1="460" y1="46" x2="685" y2="86" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <!-- 下投影 -->
+  <rect x="105" y="88" width="130" height="34" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="105" y="88" width="130" height="34"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d">Linear 下投影</div></foreignObject>
+  <rect x="365" y="88" width="130" height="34" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="365" y="88" width="130" height="34"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d">Linear 下投影</div></foreignObject>
+  <rect x="625" y="88" width="130" height="34" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="625" y="88" width="130" height="34"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d">Linear 下投影</div></foreignObject>
+  <line x1="170" y1="122" x2="170" y2="146" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <line x1="430" y1="122" x2="430" y2="146" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <line x1="690" y1="122" x2="690" y2="146" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <!-- 压缩向量 -->
+  <rect x="115" y="148" width="110" height="30" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="115" y="148" width="110" height="30"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a">\(\mathbf{c}^Q\)</div></foreignObject>
+  <rect x="375" y="148" width="110" height="30" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="375" y="148" width="110" height="30"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a">\(\mathbf{c}^K\)</div></foreignObject>
+  <rect x="635" y="148" width="110" height="30" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="635" y="148" width="110" height="30"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a">\(\mathbf{c}^V\)</div></foreignObject>
+  <line x1="170" y1="178" x2="170" y2="200" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <line x1="430" y1="178" x2="430" y2="200" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <line x1="690" y1="178" x2="690" y2="200" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <!-- 上投影 -->
+  <rect x="105" y="202" width="130" height="34" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="105" y="202" width="130" height="34"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d">Linear 上投影</div></foreignObject>
+  <rect x="365" y="202" width="130" height="34" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="365" y="202" width="130" height="34"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d">Linear 上投影</div></foreignObject>
+  <rect x="625" y="202" width="130" height="34" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="625" y="202" width="130" height="34"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d">Linear 上投影</div></foreignObject>
+  <line x1="170" y1="236" x2="170" y2="258" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <line x1="430" y1="236" x2="430" y2="258" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <line x1="690" y1="236" x2="690" y2="258" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <!-- Q K V -->
+  <rect x="105" y="260" width="130" height="38" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="105" y="260" width="130" height="38"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:15px">\(\mathbf{Q}\)</div></foreignObject>
+  <rect x="365" y="260" width="130" height="38" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="365" y="260" width="130" height="38"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:15px">\(\mathbf{K}\)</div></foreignObject>
+  <rect x="625" y="260" width="130" height="38" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="625" y="260" width="130" height="38"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:15px">\(\mathbf{V}\)</div></foreignObject>
+  <!-- 注意力计算 -->
+  <rect x="170" y="340" width="110" height="38" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+  <foreignObject x="170" y="340" width="110" height="38"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95">\(\mathbf{Q}\mathbf{K}^{\top}\)</div></foreignObject>
+  <rect x="320" y="340" width="110" height="38" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="320" y="340" width="110" height="38"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d">Softmax</div></foreignObject>
+  <rect x="470" y="340" width="70" height="38" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="470" y="340" width="70" height="38"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a">\(\mathbf{S}\)</div></foreignObject>
+  <rect x="650" y="340" width="130" height="38" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+  <foreignObject x="650" y="340" width="130" height="38"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95">\(\mathbf{S}\mathbf{V}\) 加权求和</div></foreignObject>
+  <line x1="175" y1="298" x2="200" y2="338" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <line x1="415" y1="298" x2="255" y2="338" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <line x1="690" y1="298" x2="700" y2="338" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <line x1="280" y1="359" x2="318" y2="359" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <line x1="430" y1="359" x2="468" y2="359" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <line x1="540" y1="359" x2="648" y2="359" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-c)"/>
+  <foreignObject x="60" y="404" width="740" height="28"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#64748b;font-size:12px">⚠ 概念版示意：真实 MLA 中 K、V 共享同一份压缩向量 \(\mathbf{c}^{KV}\)，且 RoPE 单独处理（见 3.2 ~ 3.4 节）</div></foreignObject>
+</svg>
+</div>
+<figcaption>图 3-2 ｜ MLA 概念示意（自绘矢量图）：输入 $\mathbf{x}$ 先各自压缩（Comp Q / Comp K / Comp V），再经线性投影还原出 Q、K、V 参与注意力。绿色为线性层，蓝色块为张量，虚线框为低秩压缩区。</figcaption>
+</figure>
+
+<h3 id="s3-2">3.2 数学推导：KV 低秩联合压缩</h3>
+<p>设压缩后潜在维度为 $d_c$（DeepSeek-V2 中 $d_c = 4 d_h = 512$，而 $n_h d_h = 128 \times 128 = 16384$）。</p>
+<p><strong>第一步：下投影（压缩）。</strong></p>
+$$
+\mathbf{c}_t^{KV} = W^{DKV}\, \mathbf{h}_t \in \mathbb{R}^{d_c}
+$$
+<p class="formula-note">$W^{DKV} \in \mathbb{R}^{d_c \times d}$ 是下投影矩阵（D = Down）。这一步在推理时只做一次，结果写入 Cache。</p>
+<p><strong>第二步：上投影（解压），为每个头还原 K 和 V。</strong></p>
+$$
+\mathbf{k}_{t,i}^{C} = W_i^{UK}\, \mathbf{c}_t^{KV}, \qquad
+\mathbf{v}_{t,i}^{C} = W_i^{UV}\, \mathbf{c}_t^{KV}
+$$
+<p class="formula-note">$W_i^{UK}, W_i^{UV} \in \mathbb{R}^{d_h \times d_c}$ 是第 $i$ 个头的上投影矩阵（U = Up）。注意上标 C 表示 Compressed（压缩路径），后面还会有 RoPE 路径。</p>
+<p><strong>Q 侧同样压缩</strong>（为了减少训练时的激活显存，对 Cache 大小无影响）：</p>
+$$
+\mathbf{c}_t^{Q} = W^{DQ}\, \mathbf{h}_t \in \mathbb{R}^{d_c'}, \qquad
+\mathbf{q}_{t,i}^{C} = W_i^{UQ}\, \mathbf{c}_t^{Q}
+$$
+<p>对比一下参数量：标准 MHA 的 $W^K, W^V$ 共 $2d^2$ 个参数；MLA 的压缩路径参数为 $d_c d + 2 n_h d_h d_c$。以 DeepSeek-V2 配置（$d=5120, d_c=512, n_h d_h = 16384$）计：MHA 约 52.4M 参数，MLA 约 19.4M 参数——<strong>参数也更少</strong>。</p>
+
+<h3 id="s3-3">3.3 矩阵吸收（Matrix Absorption）—— 最精妙的一步</h3>
+<p>上面的推导有一个显而易见的问题：推理时还要把 $\mathbf{c}_t^{KV}$ 解压回每个头的 $\mathbf{k}, \mathbf{v}$，岂不是又要算又占算力？MLA 的答案是：<strong>根本不用解压</strong>。</p>
+<p>展开注意力分数（先忽略 RoPE 和 softmax 的缩放）：</p>
+$$
+\mathbf{q}_{t,i}^{C} \cdot \mathbf{k}_{j,i}^{C}
+= \left(W_i^{UQ} \mathbf{c}_t^{Q}\right)^{\top} \left(W_i^{UK} \mathbf{c}_j^{KV}\right)
+= \left(\mathbf{c}_t^{Q}\right)^{\top} \underbrace{\left(W_i^{UQ}\right)^{\top} W_i^{UK}}_{\text{可离线预先合并}}\; \mathbf{c}_j^{KV}
+$$
+<p>中间那个矩阵 $\left(W_i^{UQ}\right)^{\top} W_i^{UK} \in \mathbb{R}^{d_c' \times d_c}$ 只由权重构成，<strong>推理前就可以合并成一个矩阵</strong>。于是：</p>
+<ul>
+  <li>Q 侧：$\tilde{\mathbf{q}}_{t,i} = \left(\left(W_i^{UQ}\right)^{\top} W_i^{UK}\right)^{\top} \mathbf{c}_t^{Q}$，维度 $d_c$；</li>
+  <li>K 侧：<strong>直接用缓存的 $\mathbf{c}_j^{KV}$ 本身</strong>，无需上投影。</li>
+</ul>
+<p>同理，输出侧的 $\mathbf{v}_{j,i}^{C} = W_i^{UV} \mathbf{c}_j^{KV}$ 可以被 $W^O$「吸收」：$\mathbf{o}_{t,i} W_i^{UV}$ 与 $W^O$ 合并。这就是<strong>矩阵吸收</strong>——推理时的 MLA 在计算上等价于一个「Q 头维度 = $d_c$、K/V 共享为 $\mathbf{c}^{KV}$」的 MQA，计算量和访存量都极小。</p>
+<div class="callout"><span class="tag">直觉</span>训练时 MLA 表现为 MHA（每个头有独立的上投影矩阵，表达力强）；推理时通过矩阵吸收塌缩为 MQA（Cache 小、访存少）。<strong>训练像 MHA，推理像 MQA</strong>——这就是 MLA「两头通吃」的原因。</div>
+<figure>
+<div class="svg-box">
+<svg viewBox="0 0 860 600" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="PingFang SC, Microsoft YaHei, sans-serif">
+  <defs>
+    <marker id="arr-i" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#334155"/>
+    </marker>
+  </defs>
+  <!-- x -->
+  <rect x="365" y="8" width="130" height="38" rx="8" fill="#f1f5f9" stroke="#475569"/>
+  <foreignObject x="365" y="8" width="130" height="38"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#0f172a">输入 \(\mathbf{x}\)</div></foreignObject>
+  <line x1="400" y1="46" x2="180" y2="78" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+  <line x1="455" y1="46" x2="610" y2="78" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+  <line x1="480" y1="46" x2="770" y2="78" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+  <!-- 三个下投影 -->
+  <rect x="95" y="80" width="150" height="36" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="95" y="80" width="150" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d">Linear（\(W^{DQ}\)）</div></foreignObject>
+  <rect x="545" y="80" width="150" height="36" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="545" y="80" width="150" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d">Linear（\(W^{DKV}\)）</div></foreignObject>
+  <rect x="720" y="80" width="130" height="36" rx="8" fill="#fef3c7" stroke="#b45309"/>
+  <foreignObject x="720" y="80" width="130" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#92400e">\(W^{KR}\) + RoPE</div></foreignObject>
+  <line x1="170" y1="116" x2="170" y2="138" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+  <line x1="620" y1="116" x2="620" y2="138" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+  <line x1="785" y1="116" x2="785" y2="138" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+  <!-- c^Q / c^KV / k^R -->
+  <rect x="110" y="140" width="120" height="32" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="110" y="140" width="120" height="32"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a">\(\mathbf{c}^Q\)</div></foreignObject>
+  <rect x="560" y="140" width="120" height="32" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="560" y="140" width="120" height="32"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d">\(\mathbf{c}^{KV}\)</div></foreignObject>
+  <rect x="725" y="140" width="120" height="32" rx="8" fill="#fef3c7" stroke="#b45309"/>
+  <foreignObject x="725" y="140" width="120" height="32"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#92400e">\(\mathbf{k}^R\)（位置）</div></foreignObject>
+  <!-- RoPE Q 路径 -->
+  <rect x="320" y="140" width="150" height="36" rx="8" fill="#fef3c7" stroke="#b45309"/>
+  <foreignObject x="320" y="140" width="150" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#92400e">\(W^{QR}\) + RoPE</div></foreignObject>
+  <line x1="230" y1="158" x2="318" y2="158" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+  <!-- Cache -->
+  <rect x="520" y="200" width="330" height="52" rx="8" fill="#fee2e2" stroke="#dc2626" stroke-dasharray="6 4"/>
+  <foreignObject x="520" y="206" width="330" height="20"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#b91c1c;font-size:13px;font-weight:700">KV Cache（每层每 token）</div></foreignObject>
+  <foreignObject x="520" y="228" width="330" height="20"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#b91c1c;font-size:12px">\(\mathbf{c}^{KV}(512) + \mathbf{k}^R(64) = 576\) 元素</div></foreignObject>
+  <line x1="620" y1="172" x2="600" y2="198" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+  <line x1="785" y1="172" x2="810" y2="198" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+  <!-- 离线合并矩阵 -->
+  <rect x="70" y="200" width="220" height="56" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-dasharray="6 4"/>
+  <foreignObject x="70" y="206" width="220" height="20"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:13px;font-weight:700">离线合并矩阵</div></foreignObject>
+  <foreignObject x="70" y="228" width="220" height="20"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:12.5px">\(\left(W^{UQ}\right)^{\top} W^{UK}\)</div></foreignObject>
+  <line x1="170" y1="172" x2="170" y2="198" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+  <!-- q~ / q^R -->
+  <rect x="90" y="290" width="180" height="36" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="90" y="290" width="180" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a">\(\tilde{\mathbf{q}}\)（内容，\(n_h \times d_c\)）</div></foreignObject>
+  <rect x="320" y="290" width="180" height="36" rx="8" fill="#fef3c7" stroke="#b45309"/>
+  <foreignObject x="320" y="290" width="180" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#92400e">\(\mathbf{q}^R\)（位置，\(n_h \times 64\)）</div></foreignObject>
+  <line x1="180" y1="256" x2="180" y2="288" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+  <line x1="395" y1="176" x2="410" y2="288" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+  <!-- 注意力 -->
+  <rect x="160" y="360" width="420" height="64" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+  <foreignObject x="160" y="368" width="420" height="22"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:14px">注意力分数 \(= \tilde{\mathbf{q}} \cdot \mathbf{c}^{KV} + \mathbf{q}^{R} \cdot \mathbf{k}^{R}\)</div></foreignObject>
+  <foreignObject x="160" y="394" width="420" height="20"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:12px">softmax → 注意力权重</div></foreignObject>
+  <line x1="180" y1="326" x2="230" y2="358" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+  <line x1="410" y1="326" x2="390" y2="358" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+  <line x1="600" y1="252" x2="470" y2="358" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+  <line x1="770" y1="252" x2="545" y2="358" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+  <!-- 输出侧合并 -->
+  <rect x="160" y="460" width="420" height="44" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="160" y="460" width="420" height="44"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d;font-size:13px">注意力权重 \(\times\ \mathbf{c}^{KV}\)，经离线合并的 \(W^{UV} \cdot W^{O}\)</div></foreignObject>
+  <line x1="370" y1="424" x2="370" y2="458" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+  <!-- Out -->
+  <rect x="300" y="540" width="140" height="38" rx="8" fill="#f1f5f9" stroke="#475569"/>
+  <foreignObject x="300" y="540" width="140" height="38"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#0f172a">输出 \(\mathbf{u}_t\)</div></foreignObject>
+  <line x1="370" y1="504" x2="370" y2="538" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
+</svg>
+</div>
+<figcaption>图 3-3 ｜ MLA 推理模式（自绘矢量图）：紫色虚线框为<strong>离线合并</strong>矩阵 $(W^{UQ})^{\top}W^{UK}$，K 侧直接复用缓存的 $\mathbf{c}^{KV}$，无需解压；输出侧 $W^{UV}$ 与 $W^O$ 同样预先合并；黄色为解耦 RoPE 位置路径，与内容路径拼接后共同计算注意力分数。</figcaption>
+</figure>
+
+<h3 id="s3-4">3.4 解耦 RoPE（Decoupled RoPE）</h3>
+<p>故事还剩一个漏洞：<strong>RoPE 位置编码</strong>。RoPE 要作用在 $\mathbf{q}, \mathbf{k}$ 上：</p>
+$$
+\mathbf{q}_{t,i} \cdot \mathbf{k}_{j,i}
+= \left(\mathrm{RoPE}_t(W_i^{UQ}\mathbf{c}_t^{Q})\right)^{\top}
+  \left(\mathrm{RoPE}_j(W_i^{UK}\mathbf{c}_j^{KV})\right)
+$$
+<p>RoPE 是一个<strong>依赖位置 $j$ 的旋转矩阵</strong>，插在 $W^{UK}$ 和 $\mathbf{c}_j^{KV}$ 之间：$\mathrm{RoPE}_j\, W_i^{UK}\, \mathbf{c}_j^{KV}$。由于 $\mathrm{RoPE}_j$ 逐位置不同，它无法被吸进离线合并的矩阵里——矩阵吸收失效了。</p>
+<p>MLA 的解决方案是<strong>解耦</strong>：位置信息不走压缩路径，单独开一条小路：</p>
+$$
+\mathbf{k}_t^{R} = \mathrm{RoPE}_t\!\left(W^{KR} \mathbf{h}_t\right) \in \mathbb{R}^{d_h^{R}}
+$$
+<p class="formula-note">$W^{KR} \in \mathbb{R}^{d_h^R \times d}$，所有头共享这一个 RoPE 键（MQA 式），$d_h^R = 64$。</p>
+<p>Q 侧也对应生成 $\mathbf{q}_{t,i}^{R} = \mathrm{RoPE}_t(W_i^{QR} \mathbf{c}_t^{Q})$，然后<strong>拼接</strong>：</p>
+$$
+\mathbf{q}_{t,i} = \left[\mathbf{q}_{t,i}^{C};\ \mathbf{q}_{t,i}^{R}\right], \qquad
+\mathbf{k}_{t,i} = \left[\mathbf{k}_{t,i}^{C};\ \mathbf{k}_t^{R}\right]
+$$
+<p>注意力分数自然拆成两部分：<strong>压缩部分</strong>（可矩阵吸收，语义内容）+ <strong>RoPE 部分</strong>（共享，位置信息）：</p>
+$$
+\mathbf{q}_{t,i} \cdot \mathbf{k}_{j,i}
+= \underbrace{\left(W_i^{UQ}\mathbf{c}_t^{Q}\right)^{\top}\!\! W_i^{UK} \mathbf{c}_j^{KV}}_{\text{内容，可吸收}}
++ \underbrace{\left(\mathbf{q}_{t,i}^{R}\right)^{\top} \mathbf{k}_j^{R}}_{\text{位置}}
+$$
+<div class="callout warn"><span class="tag">代价</span>推理时的 Cache 除了 $\mathbf{c}_t^{KV}$（$d_c$ 维）还要多存一份 $\mathbf{k}_t^R$（$d_h^R$ 维）。最终 MLA 每 token 每层的 Cache = $d_c + d_h^R = 512 + 64 = 576$ 个元素——依然远小于 MHA 的 $2 n_h d_h = 32768$。</div>
+
+<h3 id="s3-5">3.5 完整推理流程图</h3>
+<figure>
+<div class="svg-box">
+<svg viewBox="0 0 880 470" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="PingFang SC, Microsoft YaHei, sans-serif">
+  <defs>
+    <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#334155"/>
+    </marker>
+  </defs>
+  <rect x="330" y="10" width="220" height="44" rx="8" fill="#f1f5f9" stroke="#475569"/>
+  <foreignObject x="330" y="10" width="220" height="44"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#0f172a;font-size:14px">输入 hidden \(\mathbf{h}_t\)（\(d=5120\)）</div></foreignObject>
+
+  <!-- left branch Q -->
+  <path d="M 390 54 C 390 80, 220 70, 220 96" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <rect x="120" y="100" width="200" height="44" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="120" y="104" width="200" height="18"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:12.5px">Q 下投影 \(W^{DQ}\)</div></foreignObject>
+  <foreignObject x="120" y="122" width="200" height="18"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:11.5px">\(\mathbf{c}_t^Q\)（\(d_c'=1536\)）</div></foreignObject>
+
+  <line x1="220" y1="144" x2="220" y2="188" stroke="#334155" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <rect x="120" y="190" width="200" height="44" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="120" y="194" width="200" height="18"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:12.5px">Q 上投影 × 吸收 \(W^{UK}\)</div></foreignObject>
+  <foreignObject x="120" y="212" width="200" height="18"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:11.5px">\(\tilde{\mathbf{q}}\)（\(n_h,\ d_c=512\)）内容</div></foreignObject>
+
+  <path d="M 180 144 C 150 210, 120 220, 120 266" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <rect x="40" y="270" width="160" height="44" rx="8" fill="#fef3c7" stroke="#b45309"/>
+  <foreignObject x="40" y="274" width="160" height="18"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#92400e;font-size:12.5px">\(W^{QR}\) + RoPE</div></foreignObject>
+  <foreignObject x="40" y="292" width="160" height="18"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#92400e;font-size:11.5px">\(\mathbf{q}^R\)（\(n_h,\ 64\)）位置</div></foreignObject>
+
+  <path d="M 220 234 C 220 300, 352 268, 352 334" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <path d="M 160 314 C 160 352, 250 352, 317 352" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+  <!-- right branch KV -->
+  <path d="M 490 54 C 490 80, 660 70, 660 96" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <rect x="560" y="100" width="200" height="44" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="560" y="104" width="200" height="18"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d;font-size:12.5px">KV 下投影 \(W^{DKV}\)</div></foreignObject>
+  <foreignObject x="560" y="122" width="200" height="18"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d;font-size:11.5px">\(\mathbf{c}_t^{KV}\)（\(d_c=512\)）</div></foreignObject>
+
+  <path d="M 730 54 C 730 78, 795 72, 795 96" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <rect x="720" y="100" width="150" height="44" rx="8" fill="#fef3c7" stroke="#b45309"/>
+  <foreignObject x="720" y="104" width="150" height="18"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#92400e;font-size:12.5px">\(W^{KR}\) + RoPE</div></foreignObject>
+  <foreignObject x="720" y="122" width="150" height="18"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#92400e;font-size:11.5px">\(\mathbf{k}_t^R\)（\(64\)）</div></foreignObject>
+
+  <!-- cache -->
+  <rect x="560" y="190" width="310" height="56" rx="8" fill="#fee2e2" stroke="#dc2626" stroke-dasharray="6 4"/>
+  <foreignObject x="560" y="196" width="310" height="20"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#b91c1c;font-size:13px;font-weight:700">KV Cache（每层每 token）</div></foreignObject>
+  <foreignObject x="560" y="218" width="310" height="20"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#b91c1c;font-size:12px">\(\mathbf{c}^{KV}(512) + \mathbf{k}^R(64) = 576\) 元素</div></foreignObject>
+  <line x1="660" y1="144" x2="660" y2="188" stroke="#334155" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <line x1="795" y1="144" x2="795" y2="188" stroke="#334155" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+  <!-- attention -->
+  <path d="M 640 246 C 640 300, 560 278, 560 334" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <path d="M 790 246 C 790 300, 600 278, 600 334" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <rect x="320" y="338" width="280" height="52" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+  <foreignObject x="320" y="342" width="280" height="20"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:12.5px">注意力：\(\tilde{\mathbf{q}}\cdot\mathbf{c}^{KV} + \mathbf{q}^{R}\cdot\mathbf{k}^{R}\)</div></foreignObject>
+  <foreignObject x="320" y="364" width="280" height="18"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:11px">softmax 后加权 \(\mathbf{c}^{KV}\)，再吸收 \(W^{UV}, W^{O}\)</div></foreignObject>
+
+  <line x1="460" y1="390" x2="460" y2="424" stroke="#334155" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <rect x="360" y="426" width="200" height="40" rx="8" fill="#f1f5f9" stroke="#475569"/>
+  <foreignObject x="360" y="426" width="200" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#0f172a;font-size:13.5px">输出 \(\mathbf{u}_t\)（\(d=5120\)）</div></foreignObject>
+</svg>
+</div>
+<figcaption>图 3-4 ｜ MLA 推理模式数据流（自绘）。虚线红框是真正要写入 KV Cache 的内容；绿色/蓝色为「内容路径」（可矩阵吸收），黄色为「RoPE 位置路径」（各头共享、单独缓存）。</figcaption>
+</figure>
+<p>把推理时一个 token 的完整流程按顺序写出来：</p>
+<ol>
+  <li>计算 $\mathbf{c}_t^{KV} = W^{DKV}\mathbf{h}_t$ 和 $\mathbf{k}_t^R = \mathrm{RoPE}_t(W^{KR}\mathbf{h}_t)$，<strong>追加写入 Cache</strong>（共 $d_c + d_h^R$ 个元素）；</li>
+  <li>计算 $\mathbf{c}_t^{Q} = W^{DQ}\mathbf{h}_t$，再经被吸收的上投影得到内容查询 $\tilde{\mathbf{q}}_{t,i}$（$d_c$ 维/头）；</li>
+  <li>计算 RoPE 查询 $\mathbf{q}_{t,i}^R = \mathrm{RoPE}_t(W_i^{QR}\mathbf{c}_t^Q)$；</li>
+  <li>与 Cache 中所有历史 $\mathbf{c}_j^{KV}, \mathbf{k}_j^R$ 计算分数：内容分 + 位置分，softmax；</li>
+  <li>用权重对 $\mathbf{c}_j^{KV}$ 加权求和，结果被 $W_i^{UV}$ 与 $W^O$ 的合并矩阵吸收，直接得到输出 $\mathbf{u}_t$。</li>
+</ol>
+<p>作为对照，<strong>训练模式</strong>不做矩阵吸收，K、V、Q 都显式地从压缩向量解压出来再算注意力（反向传播需要独立的上投影梯度）：</p>
+<figure>
+<div class="svg-box">
+<svg viewBox="0 0 860 530" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="PingFang SC, Microsoft YaHei, sans-serif">
+  <defs>
+    <marker id="arr-t" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#334155"/>
+    </marker>
+  </defs>
+  <!-- x -->
+  <rect x="365" y="8" width="130" height="38" rx="8" fill="#f1f5f9" stroke="#475569"/>
+  <text x="430" y="32" font-size="14" text-anchor="middle" fill="#0f172a">输入 x</text>
+  <line x1="400" y1="46" x2="180" y2="78" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
+  <line x1="450" y1="46" x2="465" y2="78" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
+  <!-- 下投影 -->
+  <rect x="95" y="80" width="150" height="36" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="95" y="80" width="150" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d">Linear（\(W^{DQ}\)）</div></foreignObject>
+  <rect x="390" y="80" width="150" height="36" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="390" y="80" width="150" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d">Linear（\(W^{DKV}\)）</div></foreignObject>
+  <line x1="170" y1="116" x2="170" y2="138" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
+  <line x1="465" y1="116" x2="465" y2="138" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
+  <!-- 压缩向量 -->
+  <rect x="110" y="140" width="120" height="32" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="110" y="140" width="120" height="32"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a">\(\mathbf{c}^Q\)</div></foreignObject>
+  <rect x="395" y="140" width="140" height="32" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="395" y="140" width="140" height="32"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d;font-size:12px">\(\mathbf{c}^{KV}\)（K、V 共享）</div></foreignObject>
+  <!-- 上投影（训练时显式解压） -->
+  <line x1="170" y1="172" x2="170" y2="206" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
+  <line x1="450" y1="172" x2="410" y2="206" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
+  <line x1="480" y1="172" x2="575" y2="206" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
+  <rect x="95" y="208" width="150" height="36" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="95" y="208" width="150" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d">Linear（\(W^{UQ}\)）</div></foreignObject>
+  <rect x="330" y="208" width="150" height="36" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="330" y="208" width="150" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d">Linear（\(W^{UK}\)）</div></foreignObject>
+  <rect x="510" y="208" width="150" height="36" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="510" y="208" width="150" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d">Linear（\(W^{UV}\)）</div></foreignObject>
+  <line x1="170" y1="244" x2="170" y2="272" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
+  <line x1="405" y1="244" x2="405" y2="272" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
+  <line x1="585" y1="244" x2="585" y2="272" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
+  <!-- Q+R / K+R / V -->
+  <rect x="95" y="274" width="116" height="40" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="95" y="274" width="116" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:15px">\(\mathbf{Q}^C\)</div></foreignObject>
+  <rect x="211" y="274" width="34" height="40" rx="8" fill="#fef3c7" stroke="#b45309"/>
+  <foreignObject x="211" y="274" width="34" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#92400e;font-size:12px">\(R\)</div></foreignObject>
+  <rect x="330" y="274" width="116" height="40" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="330" y="274" width="116" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:15px">\(\mathbf{K}^C\)</div></foreignObject>
+  <rect x="446" y="274" width="34" height="40" rx="8" fill="#fef3c7" stroke="#b45309"/>
+  <foreignObject x="446" y="274" width="34" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#92400e;font-size:12px">\(R\)</div></foreignObject>
+  <rect x="510" y="274" width="150" height="40" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="510" y="274" width="150" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:15px">\(\mathbf{V}^C\)</div></foreignObject>
+  <!-- RoPE 注释 -->
+  <foreignObject x="660" y="234" width="120" height="22"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#b45309;font-size:12px">RoPE\((\mathbf{Q}, \mathbf{K})\)</div></foreignObject>
+  <line x1="700" y1="260" x2="248" y2="292" stroke="#b45309" stroke-width="1.3" stroke-dasharray="5 4" marker-end="url(#arr-t)"/>
+  <line x1="720" y1="262" x2="483" y2="292" stroke="#b45309" stroke-width="1.3" stroke-dasharray="5 4" marker-end="url(#arr-t)"/>
+  <!-- 注意力 -->
+  <rect x="170" y="365" width="110" height="40" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+  <foreignObject x="170" y="365" width="110" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95">\(\mathbf{Q}\mathbf{K}^{\top}\)</div></foreignObject>
+  <rect x="320" y="365" width="110" height="40" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <foreignObject x="320" y="365" width="110" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d">Softmax</div></foreignObject>
+  <rect x="470" y="365" width="70" height="40" rx="8" fill="#dbeafe" stroke="#2563eb"/>
+  <foreignObject x="470" y="365" width="70" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a">\(\mathbf{S}\)</div></foreignObject>
+  <rect x="610" y="365" width="130" height="40" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+  <foreignObject x="610" y="365" width="130" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95">\(\mathbf{S}\mathbf{V}\) 加权求和</div></foreignObject>
+  <line x1="165" y1="314" x2="200" y2="363" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
+  <line x1="390" y1="314" x2="255" y2="363" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
+  <line x1="585" y1="314" x2="660" y2="363" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
+  <line x1="280" y1="385" x2="318" y2="385" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
+  <line x1="430" y1="385" x2="468" y2="385" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
+  <line x1="540" y1="385" x2="608" y2="385" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
+  <!-- 输出 -->
+  <rect x="330" y="455" width="200" height="40" rx="8" fill="#f1f5f9" stroke="#475569"/>
+  <foreignObject x="330" y="455" width="200" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#0f172a">\(W^{O}\) → 输出 \(\mathbf{u}_t\)</div></foreignObject>
+  <line x1="675" y1="405" x2="500" y2="453" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-t)"/>
+</svg>
+</div>
+<figcaption>图 3-5 ｜ MLA 训练模式（自绘矢量图）：Q 走 c^Q → W^UQ，K、V 共享 c^KV 后分别经 W^UK / W^UV <strong>显式解压</strong>（训练时保留各头独立的上投影梯度，不做矩阵合并）；Q、K 拼接黄色 RoPE 部分（R），V 不参与位置编码。与图 3-3 对照可直观理解「训练像 MHA、推理像 MQA」。</figcaption>
+</figure>
+
+<!-- ================= 第四章 ================= -->
+<h2 class="chapter" id="ch4"><span class="no">四</span>MLA 与其他注意力机制的定量对比</h2>
+
+<h3>4.1 用 DeepSeek-V2 的实际配置算一笔账</h3>
+<p>DeepSeek-V2 的配置：$d = 5120$，$n_h = 128$，$d_h = 128$，$d_c = 512$，$d_h^R = 64$，层数 $L = 60$。各机制<strong>每 token 每层</strong>需要缓存的元素数：</p>
+<table>
+  <tr><th>机制</th><th>Cache 公式</th><th>每 token 每层元素数</th><th>相对 MHA</th><th>效果（相对 MHA）</th></tr>
+  <tr><td>MHA</td><td>$2 n_h d_h$</td><td>32,768</td><td>100%</td><td>基准</td></tr>
+  <tr><td>GQA（8 组）</td><td>$2 n_g d_h$</td><td>2,048</td><td>6.25%</td><td>轻微下降</td></tr>
+  <tr><td>GQA（2.5 组）</td><td>$2 n_g d_h$</td><td>≈ 640</td><td>≈ 2%</td><td>明显下降</td></tr>
+  <tr><td>MQA</td><td>$2 d_h$</td><td>256</td><td>0.78%</td><td>显著下降</td></tr>
+  <tr><td class="hl">MLA</td><td class="hl">$d_c + d_h^R$</td><td class="hl">576</td><td class="hl">1.76%</td><td class="hl">不降反升</td></tr>
+</table>
+<figure>
+<div class="svg-box">
+<svg viewBox="0 0 860 260" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="PingFang SC, Microsoft YaHei, sans-serif">
+  <text x="20" y="26" font-size="15" font-weight="700" fill="#1f2329">每 token 每层 KV Cache 元素数（DeepSeek-V2 配置，对数坐标）</text>
+  <!-- log scale: log10: MHA 32768 -> 4.52; GQA8 2048 -> 3.31; GQA2.5 640 -> 2.81; MLA 576 -> 2.76; MQA 256 -> 2.41 -->
+  <!-- x = 150 + v*140 -->
+  <line x1="150" y1="230" x2="830" y2="230" stroke="#94a3b8"/>
+  <g font-size="12" fill="#64748b" text-anchor="middle">
+    <text x="430" y="250">10³</text><text x="710" y="250">10⁴</text>
+  </g>
+  <line x1="430" y1="225" x2="430" y2="235" stroke="#94a3b8"/><line x1="710" y1="225" x2="710" y2="235" stroke="#94a3b8"/>
+  <g font-size="13">
+    <text x="140" y="62" text-anchor="end" fill="#1f2329">MHA</text>
+    <rect x="150" y="46" width="633" height="24" rx="4" fill="#94a3b8"/>
+    <text x="793" y="63" fill="#1f2329">32,768</text>
+
+    <text x="140" y="102" text-anchor="end" fill="#1f2329">GQA（8 组）</text>
+    <rect x="150" y="86" width="463" height="24" rx="4" fill="#60a5fa"/>
+    <text x="623" y="103" fill="#1f2329">2,048</text>
+
+    <text x="140" y="142" text-anchor="end" fill="#1f2329">GQA（2.5 组）</text>
+    <rect x="150" y="126" width="393" height="24" rx="4" fill="#f59e0b"/>
+    <text x="553" y="143" fill="#1f2329">640</text>
+
+    <text x="140" y="182" text-anchor="end" font-weight="700" fill="#047857">MLA</text>
+    <rect x="150" y="166" width="386" height="24" rx="4" fill="#10b981"/>
+    <text x="546" y="183" font-weight="700" fill="#047857">576 ✦</text>
+
+    <text x="140" y="222" text-anchor="end" fill="#1f2329">MQA</text>
+    <rect x="150" y="206" width="337" height="24" rx="4" fill="#f43f5e"/>
+    <text x="497" y="223" fill="#1f2329">256</text>
+  </g>
+</svg>
+</div>
+<figcaption>图 4-1 ｜ KV Cache 大小对比（自绘）。MLA 的 Cache 仅比 MQA 略大，却保住了 MHA 级别的表达能力。</figcaption>
+</figure>
+<p>换算到整模型：MLA 每 token 共 $576 \times 60 = 34{,}560$ 个元素，bf16 存储约 <strong>67.5 KB/token</strong>；128K 上下文单序列约 8.6 GB。若用 MHA 则需约 3.8 MB/token，128K 上下文高达 480 GB——这就是为什么论文报告 KV Cache 降低 93.3%、最大吞吐提升 5.76 倍（见图 1-1）。</p>
+
+<h3>4.2 为什么 MLA 效果不降反升？</h3>
+<ul>
+  <li><strong>结构化正则</strong>：低秩瓶颈强制所有头的 K/V 从共享的低维表示中生成，等价于对注意力施加了强结构约束，减少了过拟合与冗余参数；</li>
+  <li><strong>训练-推理不一致的双赢</strong>：训练时每个头有独立上投影（表达力 ≥ MHA 的低秩版本），推理时矩阵吸收带来 MQA 的效率；</li>
+  <li><strong>参数效率</strong>：省下的参数预算可以让给 FFN/MoE，同等总参数下模型整体更强。</li>
+</ul>
+
+<!-- ================= 第五章 ================= -->
+<h2 class="chapter" id="ch5"><span class="no">五</span>PyTorch 代码实现</h2>
+
+<h3 id="s5-1">5.1 从零实现 MLA（逐行注释版）</h3>
+<p>下面是一份<strong>教学版</strong> MLA，包含两种计算路径：<code>forward_train</code>（展开计算，便于理解，对应论文公式）和 <code>forward_infer</code>（矩阵吸收 + KV Cache，对应真实推理）。两者数学上等价。</p>
+
+<pre><span class="cm"># mla.py —— 教学版 Multi-head Latent Attention
+# 维度记号：d=隐藏维, n_h=头数, d_h=头维, d_c=KV压缩维, d_cq=Q压缩维, d_r=解耦RoPE维</span>
+<span class="kw">import</span> math
+<span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+<span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
+
+
+<span class="kw">def</span> <span class="fn">apply_rope</span>(x, cos, sin):
+    <span class="cm"># x: (B, T, n_h, d_r)；cos/sin: (T, d_r//2)。标准旋转位置编码</span>
+    x1, x2 = x.chunk(2, dim=-1)
+    y1 = x1 * cos[<span class="kw">None</span>, :, <span class="kw">None</span>, :] - x2 * sin[<span class="kw">None</span>, :, <span class="kw">None</span>, :]
+    y2 = x1 * sin[<span class="kw">None</span>, :, <span class="kw">None</span>, :] + x2 * cos[<span class="kw">None</span>, :, <span class="kw">None</span>, :]
+    <span class="kw">return</span> torch.cat([y1, y2], dim=-1)
+
+
+<span class="kw">class</span> <span class="fn">MLA</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, d=1024, n_h=16, d_h=64, d_c=128, d_cq=192, d_r=32):
+        super().__init__()
+        self.n_h, self.d_h, self.d_c, self.d_r = n_h, d_h, d_c, d_r
+        <span class="cm"># ---------- KV 压缩路径 ----------</span>
+        self.W_DKV = nn.Linear(d, d_c, bias=<span class="kw">False</span>)        <span class="cm"># 下投影: h -&gt; c^KV</span>
+        self.W_UK  = nn.Linear(d_c, n_h * d_h, bias=<span class="kw">False</span>)  <span class="cm"># K 上投影: c^KV -&gt; k^C（所有头）</span>
+        self.W_UV  = nn.Linear(d_c, n_h * d_h, bias=<span class="kw">False</span>)  <span class="cm"># V 上投影: c^KV -&gt; v^C</span>
+        <span class="cm"># ---------- Q 压缩路径 ----------</span>
+        self.W_DQ  = nn.Linear(d, d_cq, bias=<span class="kw">False</span>)         <span class="cm"># h -&gt; c^Q</span>
+        self.W_UQ  = nn.Linear(d_cq, n_h * d_h, bias=<span class="kw">False</span>) <span class="cm"># c^Q -&gt; q^C</span>
+        <span class="cm"># ---------- 解耦 RoPE 路径 ----------</span>
+        self.W_KR  = nn.Linear(d, d_r, bias=<span class="kw">False</span>)          <span class="cm"># 共享 RoPE 键: h -&gt; k^R</span>
+        self.W_QR  = nn.Linear(d_cq, n_h * d_r, bias=<span class="kw">False</span>) <span class="cm"># RoPE 查询: c^Q -&gt; q^R</span>
+        self.W_O   = nn.Linear(n_h * d_h, d, bias=<span class="kw">False</span>)
+        self.scale = 1.0 / math.sqrt(d_h + d_r)              <span class="cm"># 拼接后总维度缩放</span>
+
+    <span class="cm"># ============ 训练/理解用：展开计算 ============</span>
+    <span class="kw">def</span> <span class="fn">forward_train</span>(self, h, cos, sin):
+        B, T, _ = h.shape
+        c_kv = self.W_DKV(h)                                   <span class="cm"># (B,T,d_c)  ← 推理时只需缓存它和 k^R</span>
+        c_q  = self.W_DQ(h)                                    <span class="cm"># (B,T,d_cq)</span>
+
+        k = self.W_UK(c_kv).view(B, T, self.n_h, self.d_h)     <span class="cm"># 解压 K</span>
+        v = self.W_UV(c_kv).view(B, T, self.n_h, self.d_h)     <span class="cm"># 解压 V</span>
+        q = self.W_UQ(c_q).view(B, T, self.n_h, self.d_h)      <span class="cm"># 解压 Q</span>
+
+        k_r = apply_rope(self.W_KR(h).unsqueeze(2), cos, sin)  <span class="cm"># (B,T,1,d_r) 共享</span>
+        q_r = apply_rope(self.W_QR(c_q).view(B, T, self.n_h, self.d_r), cos, sin)
+
+        q = torch.cat([q, q_r], dim=-1).transpose(1, 2)        <span class="cm"># (B,n_h,T,d_h+d_r)</span>
+        k = torch.cat([k, k_r.expand(-1, -1, self.n_h, -1)], -1).transpose(1, 2)
+        <span class="cm"># 注意力（因果掩码）</span>
+        attn = (q @ k.transpose(-1, -2)) * self.scale
+        mask = torch.triu(torch.ones(T, T, device=h.device, dtype=torch.bool), 1)
+        attn = attn.masked_fill(mask, float(<span class="st">'-inf'</span>)).softmax(-1)
+        o = attn @ v.transpose(1, 2)                           <span class="cm"># (B,n_h,T,d_h)</span>
+        <span class="kw">return</span> self.W_O(o.transpose(1, 2).reshape(B, T, -1))
+
+    <span class="cm"># ============ 推理用：矩阵吸收 + Cache ============</span>
+    <span class="kw">def</span> <span class="fn">forward_infer</span>(self, h, cos, sin, cache):
+        <span class="cm"># h: (B, 1, d) 单步解码；cache: dict(c_kv, k_r) 累积历史</span>
+        B = h.shape[0]
+        c_kv = self.W_DKV(h)                                   <span class="cm"># (B,1,d_c)   ★ 写入 cache</span>
+        k_r  = apply_rope(self.W_KR(h).unsqueeze(2), cos, sin) <span class="cm"># (B,1,1,d_r) ★ 写入 cache</span>
+        cache[<span class="st">'c_kv'</span>] = torch.cat([cache[<span class="st">'c_kv'</span>], c_kv], 1) <span class="kw">if</span> cache[<span class="st">'c_kv'</span>] <span class="kw">is not</span> <span class="kw">None</span> <span class="kw">else</span> c_kv
+        cache[<span class="st">'k_r'</span>]  = torch.cat([cache[<span class="st">'k_r'</span>],  k_r], 1)  <span class="kw">if</span> cache[<span class="st">'k_r'</span>]  <span class="kw">is not</span> <span class="kw">None</span> <span class="kw">else</span> k_r
+
+        c_q = self.W_DQ(h)                                     <span class="cm"># (B,1,d_cq)</span>
+        <span class="cm"># ★ 矩阵吸收：把 W_UK 吸进 Q 侧。W_UK: (d_c, n_h*d_h) -&gt; 每头 (d_h, d_c)</span>
+        W_UK = self.W_UK.weight.view(self.n_h, self.d_h, self.d_c)
+        W_UQ = self.W_UQ.weight.view(self.n_h, self.d_h, -1)   <span class="cm"># (n_h, d_h, d_cq)</span>
+        W_absorbed = torch.einsum(<span class="st">'hdc,hdq->hqc'</span>, W_UK, W_UQ)  <span class="cm"># (n_h, d_cq, d_c)，可离线预计算</span>
+        q_c = torch.einsum(<span class="st">'bq,hqc->bhc'</span>, c_q.squeeze(1), W_absorbed)  <span class="cm"># (B,n_h,d_c)</span>
+
+        q_r = apply_rope(self.W_QR(c_q).view(B, 1, self.n_h, self.d_r), cos, sin).squeeze(1)
+
+        ck = cache[<span class="st">'c_kv'</span>]                                     <span class="cm"># (B,S,d_c)，S=历史长度</span>
+        kr = cache[<span class="st">'k_r'</span>].squeeze(2)                            <span class="cm"># (B,S,d_r)</span>
+        <span class="cm"># 内容分（无需解压 K！）+ 位置分</span>
+        scores = torch.einsum(<span class="st">'bhc,bsc->bhs'</span>, q_c, ck) \
+               + torch.einsum(<span class="st">'bhr,bsr->bhs'</span>, q_r, kr)
+        attn = (scores * self.scale).softmax(-1)               <span class="cm"># (B,n_h,S)</span>
+
+        <span class="cm"># 对 c^KV 加权求和，输出侧由 W_UV 与 W_O 合并吸收</span>
+        o_latent = torch.einsum(<span class="st">'bhs,bsc->bhc'</span>, attn, ck)      <span class="cm"># (B,n_h,d_c)</span>
+        W_UV = self.W_UV.weight.view(self.n_h, self.d_h, self.d_c)
+        W_O  = self.W_O.weight                                 <span class="cm"># (d, n_h*d_h)</span>
+        W_VO = W_O.view(-1, self.n_h, self.d_h)                <span class="cm"># (d, n_h, d_h)</span>
+        W_out = torch.einsum(<span class="st">'dhs,shc->dhc'</span>, W_VO, W_UV.permute(0, 2, 1))  <span class="cm"># (d, n_h, d_c)</span>
+        <span class="kw">return</span> torch.einsum(<span class="st">'bhc,dhc->bd'</span>, o_latent, W_out).unsqueeze(1)</pre>
+
+<h3 id="s5-2">5.2 常见坑</h3>
+<ul>
+  <li><strong>RoPE 只作用于解耦部分</strong>：$\mathbf{q}^C, \mathbf{k}^C$（压缩路径）<em>不加</em> RoPE，只给 $\mathbf{q}^R, \mathbf{k}^R$ 加。加错了矩阵吸收就会失效，而且两种错误在训练 loss 上都不容易立刻暴露；</li>
+  <li><strong>缩放系数用拼接后的总维度</strong>：$\sqrt{d_h + d_h^R}$，不是 $\sqrt{d_h}$；</li>
+  <li><strong>训练时不能合并矩阵</strong>：$\left(W^{UQ}\right)^{\top}W^{UK}$ 只在推理部署时合并。训练时合并会让两个矩阵失去独立梯度，等价于把参数化方式改掉，效果会变差；</li>
+  <li><strong>Cache 里存的是 $\mathbf{c}^{KV}$ 和 $\mathbf{k}^R$</strong>，不是解压后的 K/V——初学者最常见的实现错误；</li>
+  <li><strong>数值检查清单</strong>：用 <code>forward_train</code> 和单步循环的 <code>forward_infer</code> 跑同一输入，输出应逐位接近（误差 &lt; 1e-4），这是验证矩阵吸收推导正确性的最快方法。</li>
+</ul>
+<p>生产级实现可参考 DeepSeek 官方开源仓库（DeepSeek-V2 / V3 的 <code>model.py</code> 中的 <code>MLA</code> 类），其中还包含 FP8 量化、YaRN 长上下文扩展等工程细节。</p>
+
+<!-- ================= 第六章 ================= -->
+<h2 class="chapter" id="ch6"><span class="no">六</span>MLA 在实际模型中的应用</h2>
+
+<h3>6.1 DeepSeek-V2：首次亮相</h3>
+<ul>
+  <li>236B 总参数 / 21B 激活的 MoE 模型，60 层，$d=5120$，128 头，$d_c=512$，$d_h^R=64$；</li>
+  <li>消融实验：MLA 在同等 KV Cache 预算下显著优于 GQA/MQA；在同等效果下 Cache 仅为 MHA 的零头；</li>
+  <li>与 DeepSeekMoE 配合，训练成本相比 67B 稠密模型节省 42.5%。</li>
+</ul>
+
+<h3>6.2 DeepSeek-V3 / R1：规模化验证</h3>
+<ul>
+  <li>DeepSeek-V3（671B 总参 / 37B 激活）沿用 MLA，并叠加 MTP（Multi-Token Prediction）、FP8 训练等技术，以约 278.8 万 H800 GPU 小时完成训练；</li>
+  <li>DeepSeek-R1 的推理模型同样基于该架构，MLA 的小 Cache 特性对长思维链（CoT）场景尤为关键——推理模型的输出动辄数万 token，KV Cache 直接决定服务成本。</li>
+</ul>
+
+<h3>6.3 与 KV Cache 量化结合</h3>
+<p>MLA 缓存的是单一潜在向量而非逐头的 K/V，通道数少、分布更集中，对低比特量化（FP8/INT4）更友好。实践中「MLA + KV Cache 量化」可以叠加，把 128K 上下文的单序列 Cache 压到数 GB 以内。</p>
+
+<!-- ================= 第七章 ================= -->
+<h2 class="chapter" id="ch7"><span class="no">七</span>延伸话题</h2>
+
+<h3>7.1 MLA 的局限</h3>
+<ul>
+  <li><strong>训练计算量增加</strong>：低秩瓶颈使训练时的实际矩阵乘维度变大（Q 侧等效维度 $d_c + d_h^R = 576$ 而非 $d_h=128$），同 FLOPs 下训练略慢于 MHA；</li>
+  <li><strong>实现复杂度高</strong>：矩阵吸收、解耦 RoPE、与 FlashAttention 的融合都需要专门 kernel，工程门槛高于 GQA；</li>
+  <li><strong>推理时 Q 侧矩阵乘维度大</strong>：吸收后的 Q 是 $d_c=512$ 维，小 batch 时计算密度不如 MQA。</li>
+</ul>
+
+<h3>7.2 相关工作</h3>
+<ul>
+  <li><strong>TransMLA</strong>：把已训练的 GQA 模型权重等价转换为 MLA 结构，无需重训；</li>
+  <li><strong>MLKV / YOCO</strong>：跨层共享 KV 缓存，在 MLA 之上再砍一层冗余；</li>
+  <li><strong>NSA（Native Sparse Attention）</strong>：DeepSeek 后续提出的原生稀疏注意力，从「压缩每个 token」走向「只算重要 token」，与 MLA 正交、可组合。</li>
+</ul>
+
+<h3>7.3 思考题与延伸阅读</h3>
+<ol>
+  <li>为什么 MLA 的 RoPE 键 $\mathbf{k}^R$ 可以在所有头之间共享，而压缩键 $\mathbf{k}^C$ 不能？</li>
+  <li>如果把 $d_c$ 从 512 降到 128，Cache 会再省多少？模型效果预期会怎样变化？</li>
+  <li>推导：矩阵吸收后，MLA 推理时的注意力 FLOPs 与 MQA 是否完全相等？（提示：注意 Q 的维度）</li>
+</ol>
+
+<h3>参考文献</h3>
+<ul class="refs">
+  <li>DeepSeek-AI. <em>DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model</em>. arXiv:2405.04434, 2024.（MLA 原始论文，图 1-1、图 3-1 来源）</li>
+  <li>DeepSeek-AI. <em>DeepSeek-V3 Technical Report</em>. arXiv:2412.19437, 2024.</li>
+  <li>Shazeer, N. <em>Fast Transformer Decoding: One Write-Head is All You Need</em>. arXiv:1911.02150, 2019.（MQA）</li>
+  <li>Ainslie, J. et al. <em>GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints</em>. arXiv:2305.13245, 2023.</li>
+  <li>Su, J. et al. <em>RoFormer: Enhanced Transformer with Rotary Position Embedding</em>. arXiv:2104.09864, 2021.（RoPE）</li>
+</ul>
+
+</main>
+</div>
+
+<footer>
+  MLA 完全教程 · 生成于 2026-11 · 论文图片来源：DeepSeek-V2 (arXiv:2405.04434)，其余图示为自绘
+</footer>
+
+</body>
+</html>
