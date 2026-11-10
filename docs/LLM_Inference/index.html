@@ -52,6 +52,23 @@
       <a href="./mla-tutorial.html#ch7"><h3>延伸话题</h3><p>局限性、TransMLA / NSA 等相关工作与思考题。</p></a>
     </nav>
   </article>
+  <article>
+    <p class="metadata">技术教程 · 2026-11-10 · 中文</p>
+    <h2>Blackwell Batched 与 Grouped GEMM 实现详解</h2>
+    <p class="intro">以 MoE 的 varlen 矩阵乘为主线：单个 / Batched / Grouped 三形态对比，tcgen05、TMEM、TMA、CLC 四大硬件底座，动态形状到固定 MMA tile 的映射，设备侧 tensormap 改写，逐行走读 CUTLASS example 75，最后落在可执行的选型与调优决策树。</p>
+    <div class="facts"><span>5 部分 + 附录</span><span>9 张自绘矢量图</span><span>10+ 段代码与伪代码</span><span>含选型决策树</span></div>
+    <div class="actions">
+      <a class="primary" href="./Grouped_GEMM/">阅读全文 →</a>
+      <a href="./Grouped_GEMM/index.html" download="Blackwell Grouped GEMM 教程.html">下载 HTML</a>
+    </div>
+    <nav class="topics" aria-label="教程章节快捷入口">
+      <a href="./Grouped_GEMM/#p2"><h3>Blackwell 硬件底座</h3><p>tcgen05 单线程异步 MMA、TMEM 累加器双缓冲、CLC 动态调度。</p></a>
+      <a href="./Grouped_GEMM/#s33"><h3>动态形状 → 固定 tile</h3><p>tile 网格量化、TMA 越界补 0 与写出掩码，量化浪费分析。</p></a>
+      <a href="./Grouped_GEMM/#s34"><h3>设备侧 tensormap 改写</h3><p>grouped GEMM 的核心机制：per-group 描述符更新与 fence。</p></a>
+      <a href="./Grouped_GEMM/#s35"><h3>调度：为什么没用 CLC</h3><p>静态持久化调度的源码证据，以及 CLC 的真实落地边界。</p></a>
+      <a href="./Grouped_GEMM/#p5"><h3>选型与调优</h3><p>strided / 指针数组 / grouped 三问决策树与 MoE 特有优化。</p></a>
+    </nav>
+  </article>
   <footer><a href="https://github.com/matlinsas/AI_Research_AI/tree/main/LLM_Inference">查看 GitHub 目录</a></footer>
 </main>
 </body>
