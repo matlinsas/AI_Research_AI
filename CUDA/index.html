@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="面向 TMA 硬件与软件开发者的 NVIDIA Tensor Memory Access feature 技术手册：语义、PTX、原理、应用和真实开源代码。">
+<title>NVIDIA TMA Feature 技术手册</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23101a16'/%3E%3Ctext x='32' y='40' text-anchor='middle' font-family='Arial' font-size='24' font-weight='700' fill='%238bc50a'%3ETMA%3C/text%3E%3C/svg%3E">
+<style>
+:root{--ink:#17211b;--muted:#627066;--paper:#f5f6f1;--card:#fff;--line:#dce1d8;--green:#5f8f00;--bright:#8bc50a;--deep:#101a16;--blue:#317080;--amber:#a56316;--code:#111b17;--sidebar:264px;--radius:16px}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:28px}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.78 Inter,"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;-webkit-font-smoothing:antialiased}a{color:#286573;text-decoration:none}a:hover{text-decoration:underline}button{font:inherit}button:focus-visible,a:focus-visible{outline:3px solid #9bc53d;outline-offset:3px}::selection{background:#dcecae}.progress{position:fixed;z-index:80;left:0;top:0;height:3px;width:0;background:var(--bright)}
+.sidebar{position:fixed;inset:0 auto 0 0;width:var(--sidebar);padding:28px 22px;background:#edf0e8;border-right:1px solid var(--line);overflow:auto;z-index:40}.brand{display:flex;gap:12px;align-items:center;margin-bottom:30px}.brand-mark{display:grid;place-items:center;width:39px;height:39px;border-radius:11px;background:var(--deep);color:var(--bright);font-weight:850;letter-spacing:-1px}.brand strong{display:block;font-size:14px;line-height:1.35}.brand small{color:var(--muted);font-size:11px}.nav-label{margin:0 0 8px 10px;color:#829084;font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}.nav{display:grid;gap:3px}.nav a{display:flex;gap:10px;align-items:baseline;padding:7px 10px;border-radius:8px;color:#4e5d52;font-size:12px;line-height:1.4}.nav a span{min-width:20px;color:#8b978d;font:10px/1.4 ui-monospace,monospace}.nav a:hover,.nav a.active{background:#fff;color:#23301f;text-decoration:none}.nav a.active{box-shadow:inset 3px 0 var(--green)}.side-note{margin:26px 5px 0;padding-top:18px;border-top:1px solid #d5dbd0;color:#7b877d;font-size:11px;line-height:1.65}.page{margin-left:var(--sidebar)}.wrap{width:min(1040px,calc(100% - 72px));margin:auto}.hero{position:relative;overflow:hidden;background:var(--deep);color:#f5f8f2;padding:62px 0 48px}.hero:before{content:"";position:absolute;width:500px;height:500px;right:-180px;top:-270px;border:1px solid #34483c;border-radius:50%;box-shadow:0 0 0 55px #14221b,0 0 0 56px #2a3b30,0 0 0 110px #132019}.eyebrow{position:relative;margin:0 0 20px;color:#a5c878;font-size:11px;font-weight:800;letter-spacing:.15em;text-transform:uppercase}.hero h1{position:relative;max-width:760px;margin:0;font-size:clamp(35px,5vw,62px);line-height:1.09;letter-spacing:-.045em;font-weight:780}.hero h1 em{color:var(--bright);font-style:normal}.hero .lead{position:relative;max-width:710px;margin:24px 0 0;color:#bfcac2;font-size:17px;line-height:1.75}.hero-meta{position:relative;display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}.pill{display:inline-flex;flex:none;align-items:center;gap:7px;padding:5px 11px;border:1px solid #3a4c40;border-radius:99px;color:#d1dbd3;font-size:11px}.pill:before{content:"";width:5px;height:5px;border-radius:50%;background:var(--bright)}.hero-actions{position:relative;display:flex;gap:10px;margin-top:28px}.btn{border:1px solid #425348;border-radius:8px;padding:8px 14px;background:transparent;color:#e5ece6;cursor:pointer;font-size:12px}.btn.primary{border-color:var(--bright);background:var(--bright);color:#15200e;font-weight:750}.btn:hover{filter:brightness(1.07)}main{padding:40px 0 90px}.intro-grid{display:grid;grid-template-columns:1.45fr 1fr;gap:18px;margin-bottom:26px}.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px}.card h2,.card h3{margin:0 0 12px;line-height:1.35}.card h2{font-size:20px}.card h3{font-size:15px}.muted{color:var(--muted)}.small{font-size:12px}.kicker{margin-bottom:7px;color:var(--green);font-size:10px;font-weight:850;letter-spacing:.13em;text-transform:uppercase}.big-idea{font-size:20px;line-height:1.55;letter-spacing:-.02em}.big-idea strong{background:linear-gradient(transparent 65%,#e2edbe 0)}.contract{display:grid;gap:12px}.contract-row{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start}.num{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:#edf3df;color:#537b0b;font:700 11px ui-monospace,monospace}.contract-row b{display:block;font-size:12px}.contract-row p{margin:1px 0 0;color:var(--muted);font-size:11px;line-height:1.6}
+.diagram{margin:18px 0 0;padding:16px;background:#f8faf5;border:1px solid #e2e7dc;border-radius:12px;overflow:hidden}.diagram svg{display:block;width:100%;height:auto}.diagram figcaption{margin-top:9px;color:#748076;font-size:11px;line-height:1.6}.svg-label{font-family:"Segoe UI","Microsoft YaHei",sans-serif;fill:#26342b;font-size:12px}.svg-small{font-family:"Segoe UI","Microsoft YaHei",sans-serif;fill:#647268;font-size:10px}.svg-mono{font-family:ui-monospace,monospace;fill:#26342b;font-size:10px}.overview{margin:34px 0 48px}.section-head{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:16px}.section-head h2{margin:0;font-size:26px;letter-spacing:-.025em}.section-head p{margin:0;color:var(--muted);font-size:12px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:13px;background:#fff}table{width:100%;border-collapse:collapse;font-size:12px;min-width:760px}th{padding:12px 15px;background:#eef1e9;color:#536052;text-align:left;font-size:10px;letter-spacing:.05em}td{padding:13px 15px;border-top:1px solid #e8ebe4;vertical-align:top}td:first-child{font-weight:750;color:#273522}tbody tr:hover{background:#fafbf8}.feature{position:relative;margin:0 0 34px;padding:34px;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:0 5px 22px #1b271008}.feature-top{display:grid;grid-template-columns:58px 1fr;gap:18px;margin-bottom:26px}.feature-no{display:grid;place-items:center;width:58px;height:58px;border-radius:16px;background:#eaf1d9;color:#507415;font:800 20px ui-monospace,monospace}.feature h2{margin:0 0 7px;font-size:27px;line-height:1.25;letter-spacing:-.025em}.feature-sub{margin:0;color:var(--muted);font-size:13px}.problem{display:flex;gap:12px;margin:0 0 25px;padding:14px 16px;border-left:3px solid var(--bright);border-radius:0 9px 9px 0;background:#f5f8ed}.problem b{flex:none;font-size:11px;color:#5d7d25}.problem p{margin:0;font-size:13px}.chapter{margin-top:25px}.chapter>h3{display:flex;align-items:center;gap:9px;margin:0 0 12px;font-size:16px}.chapter>h3 .tag{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:#e9eee3;color:#5a6a57;font:800 10px ui-monospace,monospace}.chapter p{margin:9px 0}.chapter ul,.chapter ol{margin:8px 0 8px 20px;padding:0}.chapter li{margin:5px 0}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:15px}.mini{padding:16px;border:1px solid #e1e6dc;border-radius:11px;background:#fafbf8}.mini h4{margin:0 0 7px;font-size:13px}.mini p{margin:0;color:var(--muted);font-size:12px}.code{position:relative;margin:13px 0;border-radius:11px;overflow:hidden;background:var(--code);color:#dce8df}.code-title{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 13px;border-bottom:1px solid #2b3931;color:#94a69a;font:10px ui-monospace,monospace}.copy{border:0;background:transparent;color:#a9bcae;cursor:pointer;font:10px "Segoe UI",sans-serif}.copy:hover{color:#d7f49d}pre{margin:0;padding:15px;overflow:auto;font:11px/1.75 "Cascadia Code","SFMono-Regular",Consolas,monospace;tab-size:2}code{font-family:"Cascadia Code","SFMono-Regular",Consolas,monospace}.inline-code{padding:1px 5px;border-radius:4px;background:#edf0e8;color:#355143;font-size:.9em}.kw{color:#9ed66a}.ty{color:#81c6d4}.cm{color:#748f80}.numlit{color:#e3b774}.note{margin:13px 0;padding:12px 14px;border:1px solid #e2e6db;border-radius:9px;background:#f8f9f5;color:#5d695f;font-size:12px}.note.warning{border-color:#ead8b8;background:#fff9ed;color:#7b5a26}.source{padding:17px;border:1px solid #dce4d4;border-radius:12px;background:#f7faF2}.source-head{display:flex;align-items:start;justify-content:space-between;gap:12px}.source h4{margin:0;font-size:14px}.source a{flex:none;font-size:11px;font-weight:700}.source p{margin:8px 0;color:#526151;font-size:12px}.path{display:block;margin:9px 0;color:#4d6756;font:10px/1.6 ui-monospace,monospace;word-break:break-all}.source-snippet{margin:10px 0 0;padding:11px 12px;border-radius:8px;background:#e9efe2;color:#2e4937;font:10px/1.65 ui-monospace,monospace;white-space:pre-wrap;word-break:break-word}.source-foot{margin-top:10px!important;color:#758174!important;font-size:11px!important}.takeaway{margin-top:25px;padding-top:17px;border-top:1px dashed #d9dfd3;color:#4f5d51;font-size:12px}.takeaway b{color:#283824}.footer{padding:28px 0;border-top:1px solid var(--line);color:#718073;font-size:11px}.footer-row{display:flex;justify-content:space-between;gap:20px}.menu-toggle{display:none;position:fixed;z-index:60;right:16px;top:14px;width:42px;height:42px;border:1px solid #405247;border-radius:10px;background:#17251d;color:#dce9df;cursor:pointer}.backdrop{display:none}.mobile-only{display:none}.backtop{position:fixed;right:22px;bottom:22px;width:40px;height:40px;border:1px solid #ccd4c6;border-radius:50%;background:#ffffffe8;color:#4a5e4d;box-shadow:0 5px 18px #1b271018;cursor:pointer;opacity:0;pointer-events:none;transition:.2s}.backtop.show{opacity:1;pointer-events:auto}.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;color:#6f7d72;font-size:10px}.legend span:before{content:"";display:inline-block;width:9px;height:9px;margin-right:5px;border-radius:2px;background:var(--c,#8bc50a)}
+@media(max-width:1050px){:root{--sidebar:224px}.wrap{width:calc(100% - 44px)}.feature{padding:26px}.intro-grid{grid-template-columns:1fr}.hero{padding-top:56px}}
+@media(max-width:760px){html{scroll-padding-top:18px}.sidebar{transform:translateX(-100%);width:280px;transition:transform .22s}.sidebar.open{transform:translateX(0)}.backdrop.show{display:block;position:fixed;inset:0;z-index:35;background:#07110b99}.menu-toggle{display:block}.page{margin-left:0}.wrap{width:calc(100% - 30px)}.hero{padding:70px 0 38px}.hero h1{font-size:39px}.hero .lead{font-size:15px}main{padding-top:24px}.feature{padding:20px 17px;border-radius:15px}.feature-top{grid-template-columns:42px 1fr;gap:12px}.feature-no{width:42px;height:42px;border-radius:12px;font-size:16px}.feature h2{font-size:22px}.two-col{grid-template-columns:1fr}.problem{display:block}.problem b{display:block;margin-bottom:4px}.section-head{display:block}.section-head p{margin-top:5px}.source-head{display:block}.source a{display:inline-block;margin-top:5px}.footer-row{display:block}.desktop-only{display:none}.mobile-only{display:inline}.backtop{right:15px;bottom:15px}.diagram{padding:8px}.card{padding:19px}}
+@media print{.sidebar,.menu-toggle,.backtop,.progress,.hero-actions,.copy{display:none!important}.page{margin:0}.wrap{width:100%}.hero{padding:28px;background:#fff;color:#111}.hero h1,.hero h1 em{color:#111}.hero .lead{color:#444}.pill{border-color:#aaa;color:#333}main{padding:20px 0}.feature{box-shadow:none;break-before:page;border:0;padding:20px 0}.overview{break-before:page}.card,.source,.diagram,.mini{break-inside:avoid}.code{white-space:pre-wrap}pre{white-space:pre-wrap;word-break:break-word}.footer{padding:15px 0}a{color:#111;text-decoration:none}}
+.deep-intro{margin:52px 0 24px;padding:30px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.deep-intro h2{margin:0 0 10px;font-size:32px;letter-spacing:-.035em}.deep-intro>p{max-width:800px;margin:0;color:var(--muted)}.deep-index{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:22px}.deep-index a{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:12px}.deep-index a:hover{border-color:#a9bd83;text-decoration:none;background:#f8faF2}.deep-index b{color:#67813e;font:10px ui-monospace,monospace}.evidence-legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:18px;font-size:11px;color:var(--muted)}.evidence{display:inline-block;flex:none;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:750;line-height:1.55;white-space:nowrap}.evidence.real{background:#e2efd4;color:#365f18}.evidence.derived{background:#e1eff1;color:#275e69}.evidence.spec{background:#f1e9dc;color:#765527}.evidence.support{background:#e8eaf2;color:#4c5378}.mode-feature{margin:0 0 30px;padding:30px;background:#fff;border:1px solid var(--line);border-radius:18px}.mode-head{display:flex;align-items:start;justify-content:space-between;gap:20px;padding-bottom:18px;border-bottom:1px solid #e5e9e0}.mode-head h3{margin:0 0 6px;font-size:23px;line-height:1.35;letter-spacing:-.02em}.mode-head p{margin:0;color:var(--muted);font-size:12px}.mode-head>a{flex:none;font-size:11px}.mode-block{margin-top:24px}.mode-block h4{margin:0 0 10px;font-size:15px}.mode-block>p{font-size:13px}.mode-table{min-width:980px;table-layout:fixed}.mode-table th:nth-child(1){width:145px}.mode-table th:nth-child(2){width:25%}.mode-table th:nth-child(3){width:29%}.mode-table td:first-child{font-weight:750}.mode-table td{font-size:11px;line-height:1.7}.mode-table td .evidence{margin:0 0 5px}.mode-table code{font-size:10px}.mode-table .constraint{color:#795a2d}.decision{margin-top:15px;padding:15px 17px;border-radius:10px;background:#eef3e4;color:#33452c;font-size:12px}.decision b{color:#4e701c}.decision-flow{display:grid;grid-template-columns:1fr 26px 1fr 26px 1fr;gap:8px;align-items:stretch;margin:18px 0}.decision-step{padding:16px;border:1px solid #dce4d3;border-radius:10px;background:#f8faf4}.decision-step b{display:block;margin-bottom:5px;font-size:12px}.decision-step p{margin:0;color:var(--muted);font-size:11px;line-height:1.6}.decision-arrow{display:grid;place-items:center;color:#749039;font-size:20px}.mode-note{margin-top:14px;padding:12px 14px;border:1px solid #e4dfcf;border-radius:9px;background:#fbf8ef;color:#695c3f;font-size:11px}.mode-note b{color:#55472e}.field-group{background:#f7f9f3}.field-group td:first-child{background:#edf2e5}.table-scroll-note{display:none;margin:0 0 6px;color:var(--muted);font-size:10px}
+@media(max-width:760px){.deep-intro{margin-top:36px;padding:24px 0}.deep-intro h2{font-size:27px}.deep-index{grid-template-columns:1fr}.mode-feature{padding:20px 16px;border-radius:14px}.mode-head{display:block}.mode-head>a{display:inline-block;margin-top:8px}.decision-flow{grid-template-columns:1fr}.decision-arrow{transform:rotate(90deg);height:20px}.table-scroll-note{display:block}.mode-table{min-width:900px}.evidence{white-space:normal}}
+@media print{.deep-intro,.mode-feature{break-before:page}.mode-feature{padding:20px 0;border:0}.mode-table{min-width:0;font-size:9px}.mode-table td{font-size:9px}.table-scroll-note{display:none}}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<button class="menu-toggle" id="menuToggle" aria-label="打开目录" aria-expanded="false">☰</button>
+<div class="backdrop" id="backdrop"></div>
+<aside class="sidebar" id="sidebar" aria-label="文档目录">
+  <div class="brand"><div class="brand-mark">TMA</div><div><strong>Tensor Memory Access</strong><small>FEATURE FIELD GUIDE · 中文</small></div></div>
+  <p class="nav-label">导读</p>
+  <nav class="nav">
+    <a href="#mental"><span>00</span>整体心智模型</a>
+    <a href="#matrix"><span>↳</span>Feature 总览</a>
+  </nav>
+  <p class="nav-label" style="margin-top:22px">逐 Mode 深析</p>
+  <nav class="nav">
+    <a href="#deep-dive"><span>★</span>阅读规则与索引</a>
+    <a href="#mode-tile"><span>01</span>1D／2D／3D／4D／5D</a>
+    <a href="#mode-oob"><span>02</span>OOB／traversal</a>
+    <a href="#mode-swizzle"><span>03</span>全部 Swizzle 模式</a>
+    <a href="#mode-multicast"><span>04</span>Multicast mask</a>
+    <a href="#mode-pipeline"><span>05</span>完成与等待机制</a>
+    <a href="#mode-im2col"><span>06</span>im2col／interleave／W</a>
+    <a href="#mode-reduce"><span>07</span>八种 Reduce 操作</a>
+    <a href="#mode-prefetch"><span>08</span>Prefetch／cache／L2</a>
+    <a href="#mode-tensormap"><span>09</span>TensorMap 全字段</a>
+  </nav>
+  <p class="nav-label" style="margin-top:22px">背景章节</p>
+  <nav class="nav">
+    <a href="#tile"><span>01</span>Tiled 多维搬运</a>
+    <a href="#oob"><span>02</span>OOB 与遍历步幅</a>
+    <a href="#swizzle"><span>03</span>Shared-memory swizzle</a>
+    <a href="#multicast"><span>04</span>Cluster multicast</a>
+    <a href="#pipeline"><span>05</span>异步完成与流水</a>
+    <a href="#im2col"><span>06</span>im2col 与数据布局</a>
+    <a href="#reduce"><span>07</span>TMA store-reduce</a>
+    <a href="#prefetch"><span>08</span>Prefetch 与 cache hint</a>
+    <a href="#tensormap"><span>09</span>设备端 TensorMap 更新</a>
+  </nav>
+  <div class="side-note">面向硬件／软件实现者。<br>重点：为什么需要、怎样工作、在哪里真实使用。<br><br>不含编译器实现，不含架构或模型支持矩阵。</div>
+</aside>
+<div class="page">
+<header class="hero" id="top">
+  <div class="wrap">
+    <p class="eyebrow">NVIDIA PTX / CUDA · Tensor Memory Access</p>
+    <h1>把地址生成，变成<br><em>数据流硬件。</em></h1>
+    <p class="lead">面向 TMA 硬件与软件实现者的逐 mode 技术手册：不仅列出指令，更逐一回答“为什么需要这个模式、什么 case 选择它、真实 kernel 是否这样用”。覆盖九组 feature 及其主要子模式。</p>
+    <div class="hero-meta"><span class="pill">9 组 feature · 逐 mode 分析</span><span class="pill">选择依据 + 合法约束 + 案例</span><span class="pill">真实启用／逻辑推导／规范案例分级</span></div>
+    <div class="hero-actions"><a class="btn primary" href="#deep-dive">进入逐 Mode 深析</a><button class="btn" id="printBtn">打印 / 导出 PDF</button></div>
+  </div>
+</header>
+<main class="wrap">
+<section class="intro-grid" id="mental">
+  <article class="card">
+    <p class="kicker">Mental model</p><h2>先抓住一条主线</h2>
+    <p class="big-idea">主机侧把“<strong>张量长什么样</strong>”写进 TensorMap；kernel 每次只给出“<strong>要哪一块</strong>”的坐标；TMA 引擎负责地址遍历、边界与布局，并通过 <strong>mbarrier 或 bulk-group</strong> 报告完成。</p>
+    <p class="muted small">这把大量重复的整数地址计算、分支和 per-thread 拷贝，从 SM 指令流转移到专用异步数据路径。真正的收益通常来自整个流水设计，而不是孤立地替换一条 load。</p>
+  </article>
+  <article class="card">
+    <p class="kicker">Three-part contract</p><h3>硬件／软件接口的三个部分</h3>
+    <div class="contract">
+      <div class="contract-row"><span class="num">1</span><div><b>TensorMap：静态结构</b><p>维度、全局步幅、box、遍历步幅、边界填充、swizzle／interleave。</p></div></div>
+      <div class="contract-row"><span class="num">2</span><div><b>指令坐标：动态选择</b><p>一次选择 tile／im2col 区域，并指定 SMEM、mbarrier、cluster mask 等。</p></div></div>
+      <div class="contract-row"><span class="num">3</span><div><b>完成机制：流水同步</b><p>load 以 transaction bytes 记账；store／reduce 以 bulk-group 退休。</p></div></div>
+    </div>
+  </article>
+</section>
+<figure class="diagram">
+<svg viewBox="0 0 960 250" role="img" aria-label="TensorMap 加坐标驱动 TMA 搬运，并通过 mbarrier 通知计算流水线">
+<defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#6d8c35"/></marker></defs>
+<rect x="22" y="30" width="220" height="150" rx="14" fill="#edf2e3" stroke="#aabb94"/><text x="42" y="58" class="svg-label" font-weight="700">TensorMap</text><text x="42" y="84" class="svg-mono">globalDim / strides</text><text x="42" y="107" class="svg-mono">boxDim / elementStrides</text><text x="42" y="130" class="svg-mono">OOB / swizzle / mode</text><text x="42" y="158" class="svg-small">描述“张量与 tile 的结构”</text>
+<rect x="22" y="193" width="220" height="34" rx="8" fill="#fff" stroke="#cbd5c2"/><text x="42" y="215" class="svg-mono">coords = {x, y, z, ...}</text>
+<path d="M254 108 H342" stroke="#6d8c35" stroke-width="2" marker-end="url(#arr)"/><path d="M254 210 H300 V146 H342" fill="none" stroke="#6d8c35" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="355" y="58" width="205" height="122" rx="16" fill="#17251d"/><text x="457" y="91" text-anchor="middle" fill="#b6df6f" font-family="Segoe UI" font-size="16" font-weight="700">TMA engine</text><text x="457" y="119" text-anchor="middle" fill="#c6d1c9" font-family="Segoe UI" font-size="11">地址遍历 · 边界 · 布局</text><text x="457" y="142" text-anchor="middle" fill="#c6d1c9" font-family="Segoe UI" font-size="11">Global ↔ Shared</text><text x="457" y="163" text-anchor="middle" fill="#879a8d" font-family="Segoe UI" font-size="10">异步执行</text>
+<path d="M572 118 H656" stroke="#6d8c35" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="670" y="30" width="264" height="68" rx="12" fill="#e8f2f3" stroke="#9bbdc3"/><text x="690" y="57" class="svg-label" font-weight="700">Shared-memory tile</text><text x="690" y="80" class="svg-small">可被 GMMA / 计算流水线直接消费</text>
+<rect x="670" y="126" width="264" height="82" rx="12" fill="#f6f1e5" stroke="#d7bd88"/><text x="690" y="153" class="svg-label" font-weight="700">Completion</text><text x="690" y="177" class="svg-mono">mbarrier · complete_tx</text><text x="690" y="196" class="svg-mono">bulk_group · commit / wait</text>
+<path d="M790 109 V119" stroke="#6d8c35" stroke-width="2" marker-end="url(#arr)"/>
+</svg>
+<figcaption>图 0 · TMA 的基本接口不是“源地址 + 长度”，而是“描述符 + 多维坐标 + 完成对象”。同一 TensorMap 可被大量 tile 搬运复用。</figcaption>
+</figure>
+<section class="overview" id="matrix">
+  <div class="section-head"><h2>Feature 总览</h2><p>从应用痛点反推硬件机制；编号对应后续章节。</p></div>
+  <div class="table-wrap"><table><thead><tr><th>Feature</th><th>应用痛点</th><th>TMA 完成的工作</th><th>真实开源载体</th></tr></thead><tbody>
+  <tr><td>01 · Tiled 多维搬运</td><td>GEMM／Attention 反复生成 tile 地址</td><td>1D～5D 描述符 + 动态坐标，一次异步搬一块</td><td>CUTLASS Hopper GEMM</td></tr>
+  <tr><td>02 · OOB／traversal stride</td><td>边界 residue、padding、稀疏／膨胀遍历</td><td>边界填充与元素级遍历规则进入描述符</td><td>CUTLASS implicit-GEMM convolution</td></tr>
+  <tr><td>03 · Swizzle</td><td>SMEM bank conflict 与 GMMA 布局约束</td><td>搬运时重排 SMEM 内部小块</td><td>FlashAttention Q／K／V</td></tr>
+  <tr><td>04 · Multicast</td><td>cluster 内多个 CTA 重复读取同一 tile</td><td>一次 global 读取，多份 CTA SMEM 投递</td><td>CUTLASS multicast mainloop</td></tr>
+  <tr><td>05 · mbarrier／bulk-group</td><td>拷贝与计算相互等待，同步粒度过粗</td><td>字节计数、事务完成、批量 store 退休</td><td>CUTLASS／FlashAttention pipelines</td></tr>
+  <tr><td>06 · im2col／interleave／W</td><td>卷积显式展开输入，浪费内存和带宽</td><td>搬运阶段生成 implicit-GEMM 逻辑视图</td><td>CUTLASS fprop／dgrad／wgrad</td></tr>
+  <tr><td>07 · Store-reduce</td><td>多份部分结果需要读回再相加</td><td>SMEM → global 写回时执行元素归约</td><td>ThunderKittens linear attention</td></tr>
+  <tr><td>08 · Prefetch／cache hint</td><td>首访延迟、L2 保留策略不匹配复用规律</td><td>只预热 L2，或给搬运附加 eviction policy</td><td>FlashAttention Hopper</td></tr>
+  <tr><td>09 · 设备端 TensorMap 更新</td><td>grouped problem 切换矩阵不能频繁回 host</td><td>替换描述符字段并建立 proxy 可见性</td><td>CUTLASS grouped GEMM</td></tr>
+  </tbody></table></div>
+  <div class="note">纳入标准：至少有明确的实际 kernel 源码。<span class="inline-code">gather4 / scatter4</span> 本版不展开：目前核对到的是底层设施、测试或泛化 gather 讨论，证据不足以写成成熟生产用例。</div>
+</section>
+
+<section class="deep-intro" id="deep-dive">
+  <p class="kicker">Mode-by-mode deep dive</p>
+  <h2>逐 Mode 深析：从“为什么存在”到“何时选择”</h2>
+  <p>以下各表采用同一分析框架：模式的存在理由、适用 case、具体案例与证据边界。模式是否合法由 PTX／Driver API 决定；是否值得启用还取决于计算端布局、流水和复用方式。</p>
+  <div class="evidence-legend">
+    <span><span class="evidence real">真实启用</span> 已在实际 kernel 或其实例化路径中直接核对</span>
+    <span><span class="evidence derived">选择器推导</span> 由真实开源选择规则计算，未宣称逐 shape 实测</span>
+    <span><span class="evidence support">源码支持</span> 有明确实现路径，但未确认当前生产调用点启用</span>
+    <span><span class="evidence spec">规范案例</span> 语义与算法映射明确，未找到成熟生产启用</span>
+  </div>
+  <div class="deep-index">
+    <a href="#mode-tile">Tiled rank <b>1D～5D</b></a><a href="#mode-oob">边界与遍历 <b>4 类</b></a><a href="#mode-swizzle">Swizzle <b>主模式＋子模式</b></a>
+    <a href="#mode-multicast">Multicast <b>mask 拓扑</b></a><a href="#mode-pipeline">完成机制 <b>load／store</b></a><a href="#mode-im2col">im2col 家族 <b>含 interleave</b></a>
+    <a href="#mode-reduce">Reduce <b>8 种操作</b></a><a href="#mode-prefetch">Cache 策略 <b>3 组机制</b></a><a href="#mode-tensormap">TensorMap <b>12 类字段</b></a>
+  </div>
+</section>
+
+<section class="mode-feature" id="mode-tile">
+  <div class="mode-head"><div><h3>01 · Tiled rank：为什么需要 1D、2D、3D、4D、5D</h3><p>rank 不是性能档位，而是“一次地址计算要保留多少根逻辑坐标轴”。</p></div><a href="#tile">查看背景章节 ↓</a></div>
+  <div class="mode-block"><h4>先建立选择原则</h4><p>把只在一个 tile 内遍历的轴保留给 box，把需要在多次 TMA 之间选择 batch／head／group 的轴保留为坐标。若软件本来就要在 kernel 内拼出多维坐标，却先把张量压平成 2D，就会重新引入除法、取模和 stride 合成。</p>
+    <div class="decision"><b>rank = 逻辑张量坐标轴数，不是 SMEM 维数，也不是每次搬运的有效轴数。</b> 高 rank box 的外层维度可以取 1；但“可以压成低 rank”不代表“应该压”，关键看压平是否把索引运算重新推回 SM。</div>
+  </div>
+  <div class="mode-block"><h4>完整 rank 遍历</h4><p class="table-scroll-note">表格可横向滚动</p><div class="table-wrap" tabindex="0" aria-label="Tiled 1D 到 5D 模式分析表"><table class="mode-table"><thead><tr><th>Mode</th><th>为什么需要</th><th>什么 case 使用</th><th>具体案例与证据</th></tr></thead><tbody>
+    <tr><td><code>.1d</code></td><td>保留 TensorMap 的 box、OOB 和异步完成语义，但全局对象只有一根连续轴；不需要合成行 stride。</td><td>连续向量段、一维 LUT／scale 数组、已分段 blob。若只是已知字节数的线性拷贝，非 tensor 的 <code>cp.async.bulk</code> 往往更直接。</td><td><span class="evidence support">开源示例</span><br>PTX-Notes 给出完整的 1D load／store、mbarrier 和 bulk-group 示例；未找到主流生产 mainloop 选择 tensor 1D 的证据。<a href="https://github.com/xuwilight/PTX-Notes/blob/main/docs/cp.async.md" target="_blank" rel="noopener">源码</a></td></tr>
+    <tr><td><code>.2d</code></td><td>矩阵最基本的行×列模型：连续方向一维，跨行方向一维。一次指令选择一个 2D tile，stride 由描述符复用。</td><td>GEMM 的 A／B／D、单 head 的 Q／K／V、二维特征图。多数“rank 更高但外层已切片”的 tensor 也最终落成 2D。</td><td><span class="evidence real">真实启用</span><br>CUTLASS Hopper GEMM mainloop 的 A／B TMA tile，以及 epilogue 的 D store。<a href="https://github.com/NVIDIA/cutlass/blob/main/include/cutlass/gemm/collective/sm90_mma_tma_gmma_ss_warpspecialized.hpp" target="_blank" rel="noopener">mainloop</a> · <a href="https://github.com/NVIDIA/cutlass/blob/main/include/cutlass/epilogue/collective/sm90_epilogue_tma_warpspecialized.hpp" target="_blank" rel="noopener">epilogue</a></td></tr>
+    <tr><td><code>.3d</code></td><td>在 2D tile 之上保留一个独立的选择轴，避免把 batch 或 group 乘进某一根矩阵轴。</td><td>Strided batched GEMM 的 <code>(K, M/N, batch)</code>；连续 grouped problem 的权重第三轴；单个 batch 的 3D 特征块。</td><td><span class="evidence real">真实启用</span><br>CUTLASS batched／grouped GEMM 使用独立 batch 维；example 92 的 ragged contiguous grouped GEMM 文档明确权重使用 TMA 3D。<a href="https://github.com/NVIDIA/cutlass/blob/main/CHANGELOG.md" target="_blank" rel="noopener">4.3.0 changelog · example 92</a></td></tr>
+    <tr><td><code>.4d</code></td><td>同时保留 tile 内两轴和两个外层选择轴；head 与 batch 的坐标无需在 mainloop 里展平。</td><td>Attention 的 <code>(d, seqlen, head, batch)</code> 或源码等价顺序；带 group 的 batched 权重；NHWC 图像块。</td><td><span class="evidence real">真实启用</span><br>FlashAttention 直接定义 <code>ShapeQKV=(seqlen,d,head,batch)</code>，Q／K／V 都基于该 4D 逻辑张量构造 TMA。<a href="https://github.com/Dao-AILab/flash-attention/blob/main/hopper/mainloop_fwd_sm90_tma_gmma_ws.hpp" target="_blank" rel="noopener">源码</a></td></tr>
+    <tr><td><code>.5d</code></td><td>在 4D 卷积／Attention 之外再保留 group、locality domain 或额外 batch 轴，避免最高层索引重编码。</td><td><code>NDHWC＋group</code>、带额外 locality／group 的批量权重、五维科学计算块。只在前四轴确实不足以表达逻辑对象时选择。</td><td><span class="evidence spec">规范案例</span><br>DeepGEMM 有 5D descriptor 与 load 封装，但当前仓库未找到其实际调用点；不把“存在 5D 工具函数”写成生产启用。<a href="https://github.com/deepseek-ai/DeepGEMM/blob/main/csrc/jit_kernels/impls/runtime_utils.hpp" target="_blank" rel="noopener">descriptor</a> · <a href="https://github.com/deepseek-ai/DeepGEMM/blob/main/deep_gemm/include/deep_gemm/common/tma_copy.cuh" target="_blank" rel="noopener">load 封装</a></td></tr>
+  </tbody></table></div></div>
+  <div class="mode-note"><b>硬件验证启示：</b>rank 增加的不只是坐标寄存器数量，还包括 stride 级联、外层 box 为 1、跨多维 OOB、坐标为负时的卷积语义，以及高维 box 与 SMEM 线性化顺序。生产 kernel 没用到某 rank，不代表硬件可以少测该 rank。</div>
+</section>
+
+<section class="mode-feature" id="mode-oob">
+  <div class="mode-head"><div><h3>02 · OOB 与 traversal：边界模式和遍历间隔分别解决什么</h3><p>OOB 决定“越过有效区域怎么办”，elementStrides 决定“逻辑相邻元素在全局坐标中隔多远”。</p></div><a href="#oob">查看背景章节 ↓</a></div>
+  <div class="mode-block"><h4>逐 mode 分析</h4><div class="table-wrap" tabindex="0" aria-label="OOB 和遍历模式分析表"><table class="mode-table"><thead><tr><th>Mode</th><th>为什么需要</th><th>什么 case 使用</th><th>具体案例与证据</th></tr></thead><tbody>
+    <tr><td>Zero-fill</td><td>让 residue tile 仍保持规则形状；零是加法与乘加单位元，尾块可复用同一条 GMMA 路径，无需为输入搬运写一整套边界分支。</td><td>M／N／K 非 tile 整数倍；卷积 zero padding；Attention 序列尾的输入装载。输出有效区和融合操作仍可能需要谓词。</td><td><span class="evidence real">真实启用</span><br>CUTLASS TMA descriptor 默认使用 zero OOB；implicit-GEMM 的 padding 与普通 GEMM residue 都依赖这一语义。<a href="https://github.com/NVIDIA/cutlass/blob/main/include/cute/atom/copy_traits_sm90_tma.hpp" target="_blank" rel="noopener">descriptor 构造</a></td></tr>
+    <tr><td>OOB-NaN<br><code>NAN_REQUEST_ZERO_FMA</code></td><td>为特定浮点 FMA 数据路径提供规范定义的特殊越界 NaN 请求行为，而不是把越界值当普通数值零。</td><td>仅当算法和计算流水明确约定该特殊数值语义时；适合硬件数值路径验证。不能当通用 NaN padding，也不能假定普通 SIMT FMA 都有同样结果。</td><td><span class="evidence spec">规范案例</span><br>Driver API 只暴露这一特殊 OOB-NaN 枚举，且限合法浮点类型；未找到成熟生产 kernel 启用，不建议把它当默认排障开关。<a href="https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TENSOR__MEMORY.html" target="_blank" rel="noopener">规范</a></td></tr>
+    <tr><td>Traversal = 1</td><td>box 内每个逻辑位置逐一映射，形成连续 dense tile；是最常见、地址生成最直观的方式。</td><td>普通 GEMM、Attention、无 dilation／下采样的卷积。</td><td><span class="evidence real">真实启用</span><br>CUTLASS 普通 TMA tiled 与多数 im2col 配置；注意 non-interleave 时第 0 维遍历 stride 固定为 1。</td></tr>
+    <tr><td>Traversal &gt; 1</td><td>把 dilation 或规则抽样放入描述符，避免为每个元素生成跳跃地址，也避免先 materialize 一份抽样张量。</td><td>dilated convolution、规则空间下采样。沿第 i 轴要得到 N 个元素时，<code>boxDim[i]=N×elementStrides[i]</code>，实际取得 <code>ceil(boxDim/stride)</code> 个。</td><td><span class="evidence real">真实启用</span><br>CUTLASS implicit-GEMM 将 dilation 与 <code>traversal_stride</code> 传入 im2col TensorMap；这不是 globalStrides 的行间距。<a href="https://github.com/NVIDIA/cutlass/blob/main/include/cutlass/conv/collective/sm90_implicit_gemm_gmma_ss_warpspecialized.hpp" target="_blank" rel="noopener">源码</a></td></tr>
+  </tbody></table></div></div>
+  <div class="decision"><b>选择顺序：</b>先问“越界后算法期望什么值”，再选 OOB；再问“box 内是否逐元素连续遍历”，再选 traversal。两者可以组合，但都不能替代 globalStrides，也不能替代 epilogue 的输出有效区判断。</div>
+</section>
+
+<section class="mode-feature" id="mode-swizzle">
+  <div class="mode-head"><div><h3>03 · Swizzle：主模式、128B atomicity 与真实选择规则</h3><p>核心不是“越大越好”，而是让 TMA 写入的物理布局与计算端期望的 atom 完全一致。</p></div><a href="#swizzle">查看背景章节 ↓</a></div>
+  <div class="mode-block"><h4>为什么要有多个宽度</h4><p>不同 dtype、K／MN-major 和 tile 形状对应不同 SMEM canonical atom。128B atom 不能无条件套到 32B 或 64B 的连续方向：描述符可能无法创建，或者 GMMA descriptor 对同一地址的解释不同。较小模式则让窄 atom 仍能在搬运阶段完成 bank 分布变换。</p>
+    <div class="decision-flow" aria-label="Swizzle 选择流程"><div class="decision-step"><b>1 · 先定计算端</b><p>GMMA／UMMA major、dtype、atom 与普通 SMEM 访问方式。</p></div><div class="decision-arrow">→</div><div class="decision-step"><b>2 · 再定连续方向 atom</b><p>选能整除 BLK_K0／BLK_MN0 的最大合法 atom，而非只看 tile 总字节数。</p></div><div class="decision-arrow">→</div><div class="decision-step"><b>3 · 最后匹配 TensorMap</b><p>swizzle、atomicity、box inner bytes、对齐和 base offset 一起验证。</p></div></div>
+  </div>
+  <div class="mode-block"><h4>A · 主模式完整遍历</h4><div class="table-wrap" tabindex="0" aria-label="Swizzle 主模式分析表"><table class="mode-table"><thead><tr><th>Mode</th><th>为什么需要</th><th>什么 case 使用</th><th>具体案例与证据</th></tr></thead><tbody>
+    <tr><td>None</td><td>保持源布局线性顺序；适用于无 swizzle canonical atom、非 GMMA scratch、或软件已经自行处理布局的情况。</td><td>K／MN 连续方向只有 16B atom；scale／metadata 等不希望被重排的 buffer；调试 TMA 逻辑地址时排除布局变量。</td><td><span class="evidence derived">选择器推导</span><br>CUTLASS 的 INTER fallback：FP16／BF16 K=8，FP8／INT8 K=16 时选无 swizzle atom。<a href="https://github.com/NVIDIA/cutlass/blob/main/include/cutlass/gemm/collective/builders/sm90_common.inl" target="_blank" rel="noopener">selector</a></td></tr>
+    <tr><td>32B<br><span class="small muted">2×16B · 周期 256B</span></td><td>为窄 32B atom 提供两个 16B chunk 的交换；比强行扩大 atom 更符合小 K tile 的计算布局。</td><td>FP16／BF16 连续方向 16 元素；FP8／INT8 32 元素；TF32 8 元素。也用于特定 interleave／小 atom 组合。</td><td><span class="evidence derived">选择器推导</span><br>FlashAttention Q／K／V 与 CUTLASS 都调用 <code>ss_smem_selector</code>；对应 K=16（2B dtype）会落到 SW32。</td></tr>
+    <tr><td>64B<br><span class="small muted">4×16B · 周期 512B</span></td><td>在 32B 与 128B 之间匹配中等宽度 atom，避免把较窄 tile 拆成不符合计算端预期的 128B 结构。</td><td>FP16／BF16 K=32；FP8／INT8 K=64；或 K=96（2B dtype）时 128B atom 不能整除而 64B atom 可以。</td><td><span class="evidence derived">选择器推导</span><br>同一个 selector 的 SW128→SW64 回退。K=96 的例子说明选择依据是“最大能整除的 atom”，不是“能放下的最大字节宽度”。</td></tr>
+    <tr><td>96B<br><span class="small muted">6×16B · 周期 256B</span></td><td>为 96B 宽度的专用 W 数据组织提供布局；不是普通 32／64／128B GMMA atom 的通用中间档。</td><td>仅在计算端确实需要 6 个 16B chunk 的专用 im2col wide-W 布局时。要求 16B atomicity、无 interleave、inner box≤96B，且不可用于 <code>im2col::w::128</code>。</td><td><span class="evidence spec">规范案例</span><br>Driver API 将 96B 限定到 <code>IM2COL_WIDE_MODE_W</code>；未找到 CUTLASS／FlashAttention 等成熟 mainloop 启用，不应放进普通 GEMM selector。<a href="https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TENSOR__MEMORY.html" target="_blank" rel="noopener">规范</a></td></tr>
+    <tr><td>128B<br><span class="small muted">8×16B · 周期 1024B</span></td><td>为宽 atom 提供完整的 8-chunk 行相关重排，是高性能 GMMA tile 的常见选择。</td><td>FP16／BF16 K=64 或其整数倍；FP8／INT8 K=128 或其整数倍；MN-major 的对应连续方向也按 atom 宽度选择。</td><td><span class="evidence real">真实机制＋推导档位</span><br>FlashAttention Q／K／V 真实调用 selector；常见 FP16 head-dim 64／128 推导为 SW128。未声称对所有配置逐一实测。<a href="https://github.com/Dao-AILab/flash-attention/blob/main/hopper/mainloop_fwd_sm90_tma_gmma_ws.hpp" target="_blank" rel="noopener">调用点</a></td></tr>
+  </tbody></table></div></div>
+  <div class="mode-block"><h4>B · 128B 的 atomicity 子模式</h4><p>atomicity 指 swizzle 时必须保持在一起、不被拆开的字节单元。它不改变 128B 总跨度，却改变 chunk 排列和计算端 canonical layout。</p><div class="table-wrap" tabindex="0" aria-label="128B Swizzle atomicity 子模式表"><table class="mode-table"><thead><tr><th>Atomicity</th><th>为什么需要</th><th>什么 case 使用</th><th>具体案例与证据</th></tr></thead><tbody>
+    <tr><td>16B</td><td>最常见的 128B swizzle：每个 16B chunk 整体移动，匹配标准 8×8（128-bit 元素视角）atom。</td><td>普通 FP16／BF16／FP8／INT8 GMMA tile，且计算端 descriptor 选择标准 128B swizzle。</td><td><span class="evidence derived">选择器推导</span><br>CUTLASS SW128 canonical layout 对应这一常用形式。</td></tr>
+    <tr><td>32B</td><td>把相邻两个 16B 作为不可拆分的 32B 单元，服务要求 32B 原子布局的计算或打包格式。</td><td>仅当 UMMA／GMMA 或自定义消费者对 32B 单元有明确布局约定时；不能用普通 SW128 descriptor 替代。</td><td><span class="evidence support">源码支持</span><br>DeepGEMM 的 <code>mode_into_tensor_map_swizzle</code> 在 mode=128、base=32 时映射到该枚举；当前未定位到显式传 base=32 的生产调用点。<a href="https://github.com/deepseek-ai/DeepGEMM/blob/main/csrc/jit_kernels/impls/runtime_utils.hpp" target="_blank" rel="noopener">源码</a></td></tr>
+    <tr><td>32B＋8B flip</td><td>在 32B atomicity 之上，再于相邻 SMEM line 交换每个 16B 内的两个 8B，匹配更特殊的数据通路布局。</td><td>只有消费者明确要求 alternate-line 8B flip 时。仅 global→shared load 合法，且不可用于 <code>im2col::w</code>／<code>w::128</code>。</td><td><span class="evidence spec">规范案例</span><br>未找到实际生产 kernel 启用；应使用 PTX Figure 37 的逐 8B 图做 RTL／模型比对，而非套用普通 XOR 图。<a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#tensor-128b-swizzle-32b-atom-8b-flip" target="_blank" rel="noopener">规范图</a></td></tr>
+    <tr><td>64B</td><td>把四个 16B 保持为 64B 整体，减少重排粒度以匹配特定宽单元布局。</td><td>消费者以 64B 为不可分割 atom 的专用 store 路径；Driver API 当前标为 store-only，不能当作更“宽”的通用 load 优化。</td><td><span class="evidence spec">规范案例</span><br>未找到成熟生产启用；合法方向、数据类型和计算端布局必须同时满足。<a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#tensor-128b-swizzle-64b-atom" target="_blank" rel="noopener">规范图</a></td></tr>
+  </tbody></table></div></div>
+  <div class="mode-block"><h4>C · 用真实 selector 计算几个具体 shape</h4><div class="table-wrap" tabindex="0" aria-label="K major Swizzle 选择示例"><table class="mode-table"><thead><tr><th>K-major BLK_K0</th><th>FP16／BF16</th><th>FP8／INT8</th><th>为什么</th></tr></thead><tbody>
+    <tr><td>8／16</td><td>K=8 → None</td><td>K=16 → None</td><td>连续方向只有 16B；selector 落到 INTER。</td></tr>
+    <tr><td>16／32</td><td>K=16 → 32B</td><td>K=32 → 32B</td><td>对应 2×16B atom。</td></tr>
+    <tr><td>32／64</td><td>K=32 → 64B</td><td>K=64 → 64B</td><td>对应 4×16B atom。</td></tr>
+    <tr><td>64／128 及整数倍</td><td>K=64／128 → 128B</td><td>K=128 → 128B</td><td>最大 SW128 atom 能整除 BLK_K0。</td></tr>
+    <tr><td>96（2B dtype）</td><td>K=96 → 64B</td><td>—</td><td>96 不能被 SW128 的 64 元素整除，但能被 SW64 的 32 元素整除。</td></tr>
+  </tbody></table></div></div>
+  <div class="mode-note"><b>最常见误判：</b>“box inner≤128B”只说明某类 128B swizzle 的描述符约束可能满足，并不说明计算端可以按 SW128 读取。软件需同时更新 CUTE layout 与 GMMA／UMMA descriptor；硬件需按规范逐模式验证 repeat period 和非零 base offset。</div>
+</section>
+
+<section class="mode-feature" id="mode-multicast">
+  <div class="mode-head"><div><h3>04 · Multicast：不是三档开关，而是 cta_mask 的三种复用拓扑</h3><p>PTX 只有是否使用 multicast 以及 mask；真正的设计空间是哪些 CTA 共享同一 tile。</p></div><a href="#multicast">查看背景章节 ↓</a></div>
+  <div class="mode-block"><h4>按 mask 拓扑分析</h4><div class="table-wrap" tabindex="0" aria-label="Multicast mask 拓扑分析表"><table class="mode-table"><thead><tr><th>拓扑</th><th>为什么需要</th><th>什么 case 使用</th><th>具体案例与证据</th></tr></thead><tbody>
+    <tr><td>Unicast<br><span class="small muted">不带 multicast</span></td><td>一个 tile 只被一个 CTA 消费时，避免无收益的 cluster 分发和接收端同步。</td><td>每个 CTA 拥有独立 Q tile；cluster 退化为单 CTA；A／B 在对应维没有共享。</td><td><span class="evidence real">真实启用</span><br>FlashAttention 的 Q 使用 <code>SM90_TMA_LOAD</code>，源码明确注释 no mcast for Q；K／V 才按 cluster M 广播。<a href="https://github.com/Dao-AILab/flash-attention/blob/main/hopper/mainloop_fwd_sm90_tma_gmma_ws.hpp" target="_blank" rel="noopener">源码</a></td></tr>
+    <tr><td>部分 CTA mask</td><td>只给真正共享 tile 的 CTA 投递，节省重复 global 流量，又不让无关 CTA 占用 SMEM stage 或参与回收。</td><td>二维 cluster 中固定 N、沿 M 的一组 CTA 共享 B；固定 M、沿 N 的一组共享 A。A／B mask 应独立构造。</td><td><span class="evidence real">真实启用</span><br>CUTLASS 分别维护 <code>mcast_mask_a</code>／<code>mcast_mask_b</code>；FlashAttention 为固定 cluster Y 的 M 行构造 K／V mask。<a href="https://github.com/NVIDIA/cutlass/blob/main/include/cutlass/gemm/collective/sm90_mma_tma_gmma_ss_warpspecialized.hpp" target="_blank" rel="noopener">CUTLASS</a></td></tr>
+    <tr><td>全 cluster mask</td><td>所有 CTA 都要读取同一 tile 时，把复用扩大到整个 cluster。</td><td>cluster 的另一维大小为 1，或所有 CTA 协同处理同一公共权重／查找表 tile。若各 CTA 坐标不同，全 mask 反而错误。</td><td><span class="evidence derived">配置推导</span><br>由 CUTLASS mask 构造可得到全 1 mask；不是独立 PTX 模式，也不声称所有 cluster 配置都会启用。</td></tr>
+  </tbody></table></div></div>
+  <div class="decision"><b>选择公式：</b>按“相同 global tile 坐标”对 CTA 分组，同一组才进入同一 mask。每个接收 CTA 仍获得自己的 SMEM 副本并登记预期 transaction bytes； multicast 节省的是重复读取与地址生成，不是 SMEM 容量。</div>
+</section>
+
+<section class="mode-feature" id="mode-pipeline">
+  <div class="mode-head"><div><h3>05 · 完成机制：load 与 store 为什么使用两套协议</h3><p>load 关心“数据是否全部到达 SMEM”；store／reduce 还要区分“源 SMEM 可复用”和“global 操作全部完成”。</p></div><a href="#pipeline">查看背景章节 ↓</a></div>
+  <div class="mode-block"><h4>完成与等待方式</h4><div class="table-wrap" tabindex="0" aria-label="TMA 完成与等待机制分析表"><table class="mode-table"><thead><tr><th>机制</th><th>为什么需要</th><th>什么 case 使用</th><th>具体案例与证据</th></tr></thead><tbody>
+    <tr><td>mbarrier<br><code>expect_tx → complete_tx</code></td><td>把异步搬运字节数并入 barrier phase；消费者只需等待一个 phase，就能知道整个 tile 到齐，而不是轮询每个地址。</td><td>global→SMEM tile load；多阶段 producer／consumer；multicast 每个接收 CTA 的本地完成跟踪。</td><td><span class="evidence real">真实启用</span><br>CUTLASS <code>PipelineTmaAsync</code> 与 FlashAttention K／V pipeline。transaction bytes 必须包含本 stage 实际期望到达的全部数据。<a href="https://github.com/NVIDIA/cutlass/blob/main/include/cutlass/pipeline/pipeline.hpp" target="_blank" rel="noopener">pipeline</a></td></tr>
+    <tr><td><code>test_wait</code><br>非阻塞查询</td><td>线程在 barrier 未完成时还有别的独立工作，不能把所有等待都变成阻塞。</td><td>persistent scheduler 同时轮询多个事件；先检查数据是否就绪，不就绪则调度其他工作。</td><td><span class="evidence spec">规范案例</span><br>PTX 明确区分非阻塞 test 与可挂起 try；未把它包装成所有 mainloop 的默认方式。</td></tr>
+    <tr><td><code>try_wait</code><br>等待 phase</td><td>消费者后续指令立即依赖 tile，继续执行没有意义；让线程等待到指定 phase 完成。</td><td>GMMA 消费前等待 full barrier；stage 回收前等待 empty barrier。</td><td><span class="evidence real">真实启用</span><br>CUTLASS pipeline consumer／producer 路径；多阶段数是软件流水策略，不是另一种 PTX 完成 mode。</td></tr>
+    <tr><td>bulk-group<br><code>wait_group.read N</code></td><td>只等到指定旧 group 已读完源 SMEM，即可复用该 buffer；不必等 global 写操作完全退休。</td><td>epilogue 要尽快重写同一块输出 staging buffer；store／reduce 写回后的 stage 回收。</td><td><span class="evidence real">真实启用</span><br>CUTLASS TMA store epilogue 与 ThunderKittens <code>store_async_wait</code> 类路径。它不等于 global 结果可见性保证。</td></tr>
+    <tr><td>bulk-group<br><code>wait_group N</code></td><td>需要更强完成条件，确保指定旧 group 的整个异步操作完成，而不仅是源读取结束。</td><td>后续操作依赖 global 写回完成；退出或跨阶段协议要求完整退休。N 表示允许多少个较新的 group 尚未等待。</td><td><span class="evidence derived">协议选择</span><br>由 PTX 生命周期语义选择；不能用 <code>.read</code> 代替需要完整完成的位置。<a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#data-movement-and-conversion-instructions-cp-async-bulk-wait-group" target="_blank" rel="noopener">规范</a></td></tr>
+  </tbody></table></div></div>
+  <div class="mode-note"><b>Proxy 不属于可省略的第五种等待：</b>普通线程写 SMEM 后，TMA store／reduce 通过 async proxy 读之前仍需 <code>fence.proxy.async</code>。完成 barrier 解决“时间上的到齐”，proxy fence 解决“不同代理之间的可见性”，二者不能互相替代。</div>
+</section>
+
+<section class="mode-feature" id="mode-im2col">
+  <div class="mode-head"><div><h3>06 · im2col 家族：普通、no_offs、W、W128 与 interleave</h3><p>这些后缀改变的是坐标生成与数据组织，不是五种不同卷积算法。</p></div><a href="#im2col">查看背景章节 ↓</a></div>
+  <div class="mode-block"><h4>A · im2col 访问模式</h4><div class="table-wrap" tabindex="0" aria-label="im2col 访问模式分析表"><table class="mode-table"><thead><tr><th>Mode</th><th>为什么需要</th><th>什么 case 使用</th><th>具体案例与证据</th></tr></thead><tbody>
+    <tr><td><code>.im2col</code></td><td>把滤波器窗口与输入像素坐标的关系交给 TMA，直接形成 implicit-GEMM 输入 tile，避免显式展开矩阵。</td><td>fprop／dgrad 的激活侧、wgrad 的对应操作数；需要 pixel offsets、halo、padding 和多维坐标推进。</td><td><span class="evidence real">真实启用</span><br>CUTLASS fprop／dgrad：A=im2col、B=tiled；wgrad 则角色相反。3D～5D 对应 NWC／NHWC／NDHWC。<a href="https://github.com/NVIDIA/cutlass/blob/main/include/cutlass/conv/collective/sm90_implicit_gemm_gmma_ss_warpspecialized.hpp" target="_blank" rel="noopener">源码</a></td></tr>
+    <tr><td><code>.im2col_no_offs</code></td><td>写回或归约已按 im2col 逻辑组织的数据时，不需要 load 那样的逐指令 im2col offsets。</td><td>implicit-GEMM 结果从 SMEM store／reduce 到 global，偏移信息已经由坐标与描述符确定。</td><td><span class="evidence spec">规范案例</span><br>PTX store／reduce 形式支持；未找到独立生产用例，不与 load 的 <code>.im2col</code> 混写。<a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#data-movement-and-conversion-instructions-cp-async-bulk-tensor" target="_blank" rel="noopener">规范</a></td></tr>
+    <tr><td><code>.im2col::w</code></td><td>只沿 W 维组织访问，H／D 保持固定，并显式提供 <code>wHalo</code>／<code>wOffset</code>，服务宽方向专门数据流。</td><td>只扩展宽度方向窗口的卷积阶段；W 元素数由 Pixels-per-Column 决定。</td><td><span class="evidence spec">规范案例</span><br>未找到成熟生产启用。W 系列要求合法非 None swizzle，且不支持 128B＋32B＋8B flip。</td></tr>
+    <tr><td><code>.im2col_no_offs::w</code></td><td>W 专用写回／归约形式，不携带 im2col offsets；W 元素数同样由 Pixels-per-Column 决定。</td><td>W 专用数据组织后的 store／reduce，而不是输入 load。</td><td><span class="evidence spec">规范案例</span><br>PTX 9.4 形式已核对；未找到生产 kernel 使用。</td></tr>
+    <tr><td><code>.im2col::w::128</code></td><td>把一次 W 方向访问固定为 128 个元素，匹配固定宽度的数据通路，而不是可变的 Pixels-per-Column。</td><td>消费者明确要求 128-element W 片段的专用卷积流水；<code>wHalo</code> 合法范围也比普通 W 更窄。</td><td><span class="evidence spec">规范案例</span><br>不可使用 96B swizzle；未找到生产启用。不要根据名字把“128”误解为 128B swizzle。<a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#tensor-im2col-w-w128-modes" target="_blank" rel="noopener">规范</a></td></tr>
+  </tbody></table></div></div>
+  <div class="mode-block"><h4>B · Interleave：None／16B／32B</h4><p>interleave 描述 global memory 中通道分组方式；swizzle 描述 SMEM 内 bank 布局。两者有关联约束，但绝不是同一个 feature。</p><div class="table-wrap" tabindex="0" aria-label="Interleave 模式分析表"><table class="mode-table"><thead><tr><th>Mode</th><th>为什么需要</th><th>什么 case 使用</th><th>具体案例与证据</th></tr></thead><tbody>
+    <tr><td>None</td><td>global tensor 采用普通逐元素连续布局，不按 16B／32B channel packet 交错。</td><td>NHWC／NDHWC 普通张量、GEMM 矩阵、Attention Q／K／V。</td><td><span class="evidence real">真实启用</span><br>CUTLASS／FlashAttention／DeepGEMM 的常见 descriptor 均走 non-interleave 路径。</td></tr>
+    <tr><td>16B</td><td>直接理解以 16B channel packet 为单位的 NCHWc 类布局，避免先把 packed tensor 转普通布局。</td><td><code>NC/8HWC8</code>：8×FP16／BF16=16B；也可为 4×FP32=16B。仅 3D～5D，最后不足一个 packet 的 slice 需补零。</td><td><span class="evidence spec">规范案例</span><br>Driver API 给出 NC/8HWC8 类例子；未找到成熟 TMA 生产 mainloop 启用。</td></tr>
+    <tr><td>32B</td><td>面向更宽的 32B channel packet，匹配特定 NCHWc 数据通路。</td><td>16×FP16／BF16=32B，或 8×FP32=32B；仅 3D～5D，末 slice 补零。</td><td><span class="evidence spec">规范案例</span><br>强制搭配 32B swizzle；不支持 gather4／scatter4，也不支持 im2col W／W128。未找到生产启用。</td></tr>
+  </tbody></table></div></div>
+  <div class="mode-note"><b>选型红线：</b>普通卷积 implicit-GEMM 证据最强的是 <code>.im2col</code>＋non-interleave。W、W128 和 NCHWc interleave 都是专用布局接口，不能因为“字段存在”就假定 CUTLASS 的默认卷积 mainloop 会使用。</div>
+</section>
+
+<section class="mode-feature" id="mode-reduce">
+  <div class="mode-head"><div><h3>07 · Store-reduce：8 种逐元素归约操作</h3><p>把“读出旧值＋计算＋写回”合并进 SMEM→global 的 TMA 写路径，适合已经按 tile 组织的部分结果。</p></div><a href="#reduce">查看背景章节 ↓</a></div>
+  <div class="mode-block"><h4>A · 操作类型与应用映射</h4><div class="table-wrap" tabindex="0" aria-label="TMA store-reduce 操作模式分析表"><table class="mode-table"><thead><tr><th>Mode／类型</th><th>为什么需要</th><th>什么 case 使用</th><th>具体案例与证据</th></tr></thead><tbody>
+    <tr><td><code>.add</code><br>u32／s32／u64／f32／f16／bf16</td><td>多个 CTA、多个 split 或多个时间步各自产生部分和时，省去单独读回与累加 kernel。</td><td>split-K GEMM 输出、linear attention 分块状态、分段直方图或浮点部分和。tile 内每个元素分别与 global 旧值相加。</td><td><span class="evidence real">真实启用</span><br>ThunderKittens linear attention 用 <code>store_add_async</code> 累加部分输出，是目前已直接核对的生产 kernel 路径。<a href="https://github.com/HazyResearch/ThunderKittens/blob/main/kernels/linear_attention/linear_attention.cu" target="_blank" rel="noopener">源码</a></td></tr>
+    <tr><td><code>.min</code><br>u32／s32／u64／s64／f16／bf16</td><td>各分块独立计算局部最小值，写回时直接合并，避免额外的全局第二阶段归约。</td><td>分块最短路松弛的候选距离、检测框或代价上界、低精度逐元素范围统计。</td><td><span class="evidence spec">规范案例</span><br>算法映射成立，但未找到生产 TMA kernel 启用；不支持 f32 或 f64 的 tensor reduce min。</td></tr>
+    <tr><td><code>.max</code><br>u32／s32／u64／s64／f16／bf16</td><td>与 min 对称，把局部最大值直接合并到全局 tile。</td><td>分块 pooling 候选值、低精度激活范围统计、多个 producer 的逐元素上界合并。</td><td><span class="evidence spec">规范案例</span><br>算法映射案例，未找到生产启用；softmax 常用 f32 标量／向量归约，不应据此宣称它已改用 TMA max。</td></tr>
+    <tr><td><code>.inc</code><br>u32</td><td>需要“加一但到界回零”的有界计数，不是普通整数加一。</td><td>全局环形槽位分配、模计数器、循环队列位置更新；每元素独立执行 <code>(old &gt;= new) ? 0 : old + 1</code>。</td><td><span class="evidence spec">规范案例</span><br>PTX 通用 atom 语义映射；未找到生产 TMA 启用。公式中的 <code>new</code> 是 SMEM 源元素提供的比较／边界值。</td></tr>
+    <tr><td><code>.dec</code><br>u32</td><td>需要“减一、下溢时回到边界”的反向环形计数。</td><td>反向遍历环形槽位、带饱和回绕的倒计时或索引；<code>(old == 0 || old &gt; new) ? new : old - 1</code>。</td><td><span class="evidence spec">规范案例</span><br>规范语义案例，未找到生产启用；不能写成普通 <code>old - 1</code>，也不能把边界解释为固定 255。</td></tr>
+    <tr><td><code>.and</code><br>b32／b64</td><td>多个分块只有全部条件成立时结果才成立，可在写回时直接求按位交集。</td><td>有效性位图、分块掩码交集、多 producer 完成标志的按位归并。</td><td><span class="evidence spec">规范案例</span><br>位图算法映射；未找到生产 TMA 启用，不与逻辑布尔归约指令混淆。</td></tr>
+    <tr><td><code>.or</code><br>b32／b64</td><td>任一分块置位就保留该位，避免读回掩码再合并。</td><td>占用位图、访问足迹、异常标志集合、分块命中信息的并集。</td><td><span class="evidence spec">规范案例</span><br>位图算法映射；未找到生产 TMA 启用。</td></tr>
+    <tr><td><code>.xor</code><br>b32／b64</td><td>需要奇偶性或可切换标志时，多个 tile 的贡献可直接在 global 端合并。</td><td>分块奇偶校验、按位差分累积、特定可逆切换位图；不适合“去重集合并集”。</td><td><span class="evidence spec">规范案例</span><br>校验／奇偶性算法映射；未找到生产 TMA 启用。</td></tr>
+  </tbody></table></div></div>
+  <div class="mode-note"><b>硬件语义决定使用边界：</b>reduce 对 tile 元素执行 relaxed GPU-scope 归约，并归入 bulk-async group；源 SMEM 可读完后用 <code>wait_group.read</code> 回收，完整操作结束则用普通 <code>wait_group</code>。浮点 add 不承诺跨操作顺序，split 数或调度变化可能改变舍入结果，不能要求逐位可复现。</div>
+</section>
+
+<section class="mode-feature" id="mode-prefetch">
+  <div class="mode-head"><div><h3>08 · Prefetch、cache hint 与 L2 promotion</h3><p>三组正交机制：何时预热、在 L2 如何保留、从 DRAM 填充 L2 时取多大粒度。</p></div><a href="#prefetch">查看背景章节 ↓</a></div>
+  <div class="mode-block"><h4>A · Prefetch 对象</h4><div class="table-wrap" tabindex="0" aria-label="TMA prefetch 模式分析表"><table class="mode-table"><thead><tr><th>Mode</th><th>为什么需要</th><th>什么 case 使用</th><th>具体案例与证据</th></tr></thead><tbody>
+    <tr><td><code>cp.async.bulk.prefetch.tensor</code><br>张量数据</td><td>SMEM stage 尚未空出，但未来坐标已确定；先把 tile 拉近 L2，正式 load 时降低首访延迟。</td><td>Attention 未来 Q tile、persistent GEMM 的下一 problem、调度可预测但缓冲深度有限的 mainloop。</td><td><span class="evidence real">真实启用</span><br>FlashAttention Hopper 对 Q descriptor 对应张量执行 prefetch；之后仍需正式 load 与 mbarrier，prefetch 不产生 SMEM 数据。<a href="https://github.com/Dao-AILab/flash-attention/blob/main/hopper/mainloop_fwd_sm90_tma_gmma_ws.hpp" target="_blank" rel="noopener">源码</a></td></tr>
+    <tr><td><code>prefetch.tensormap</code><br>描述符</td><td>第一次使用某个 128B TensorMap 前，减少描述符自身访问延迟；设备端替换描述符后也有预热价值。</td><td>多 problem persistent kernel 初始化、描述符首次进入 mainloop 前，或与独立准备工作重叠。</td><td><span class="evidence real">真实启用</span><br>CUTLASS <code>prefetch_tma_descriptors</code> 封装并调用该指令，Hopper mainloop 在正式使用前预热描述符。<a href="https://github.com/NVIDIA/cutlass/blob/main/include/cute/arch/copy_sm90_desc.hpp" target="_blank" rel="noopener">底层封装</a></td></tr>
+  </tbody></table></div></div>
+  <div class="mode-block"><h4>B · Cache eviction policy</h4><div class="table-wrap" tabindex="0" aria-label="TMA cache eviction 模式分析表"><table class="mode-table"><thead><tr><th>Mode</th><th>为什么需要</th><th>什么 case 使用</th><th>具体案例与证据</th></tr></thead><tbody>
+    <tr><td><code>EVICT_NORMAL</code></td><td>没有足够复用信息时保持硬件正常替换策略，避免人为污染 cache。</td><td>普通 A／B／D tile、只读一次或复用规律不明确的数据，也是不需要专门调优时的基线。</td><td><span class="evidence real">真实启用</span><br>CUTLASS 常见 TMA copy traits 默认 cache hint 为 normal；是默认路径，不代表每次都显式写 PTX cache-policy 操作数。</td></tr>
+    <tr><td><code>EVICT_FIRST</code></td><td>流式数据用完即走，优先成为替换候选，给更有复用价值的数据留 L2。</td><td>大 tensor 单次扫描、无跨 CTA／跨阶段复用的输出或输入；需由真实复用距离证明。</td><td><span class="evidence spec">规范案例</span><br>未找到成熟生产 kernel 的明确 TMA 启用点，不能把普通 load 自动等同于 first。</td></tr>
+    <tr><td><code>EVICT_LAST</code></td><td>近期还会复用的数据尽量后替换，降低同一块 K／V 或权重的重复 L2 miss。</td><td>多个 Q block 重读同一 K／V、多个 CTA 共用权重；工作集明显小于可用 L2 或经实测受益时。</td><td><span class="evidence real">真实启用</span><br>FlashAttention Hopper 的 K／V TMA load 使用 <code>TMA::CacheHintSm90::EVICT_LAST</code>，Q 不套用同一策略。<a href="https://github.com/Dao-AILab/flash-attention/blob/main/hopper/mainloop_fwd_sm90_tma_gmma_ws.hpp" target="_blank" rel="noopener">源码</a></td></tr>
+  </tbody></table></div></div>
+  <div class="mode-block"><h4>C · L2 promotion 粒度</h4><p>这是从 DRAM 填充 L2 的请求粒度提示，不是 eviction policy，也不改变 TensorMap 的逻辑 tile 大小。</p><div class="table-wrap" tabindex="0" aria-label="TMA L2 promotion 模式分析表"><table class="mode-table"><thead><tr><th>Mode</th><th>为什么需要</th><th>什么 case 使用</th><th>具体案例与证据</th></tr></thead><tbody>
+    <tr><td>None</td><td>访问较散或邻近区域不会使用，避免把无用字节拉进 L2。</td><td>小而不规则的 box、坐标跳跃大、额外提升会增加无效带宽的路径。</td><td><span class="evidence real">真实默认</span><br>CUTLASS 常规 TensorMap 构造未指定提升时走默认 none；不能从 128B swizzle 推断需要 128B promotion。</td></tr>
+    <tr><td>64B</td><td>局部性有限，只希望在基本访问附近小幅扩大 DRAM→L2 填充。</td><td>窄行、短连续段，邻近 64B 有较高概率随后被访问，但更大提升容易浪费。</td><td><span class="evidence spec">规范案例</span><br>由访问局部性推导；未找到已核对生产启用，不与 cache sector 大小保证混同。</td></tr>
+    <tr><td>128B</td><td>连续访问覆盖中等范围，希望减少后续 DRAM 请求。</td><td>较规则二维 tile 或权重流，128B 邻域复用明确且额外流量可接受。</td><td><span class="evidence spec">规范案例</span><br>未找到已核对生产启用；需要通过工作集和带宽计数器验证，而不是盲目增大。</td></tr>
+    <tr><td>256B</td><td>高连续局部性下用更宽填充摊薄 DRAM 请求开销。</td><td>规则的 GEMM 权重／激活 tile，后续访问会覆盖完整邻域，且 L2 容量允许。</td><td><span class="evidence real">真实启用</span><br>DeepGEMM 的 2D／3D／4D／5D descriptor 构造都设置 <code>CU_TENSOR_MAP_L2_PROMOTION_L2_256B</code>。<a href="https://github.com/deepseek-ai/DeepGEMM/blob/main/csrc/jit_kernels/impls/runtime_utils.hpp" target="_blank" rel="noopener">源码</a></td></tr>
+  </tbody></table></div></div>
+  <div class="mode-note"><b>组合而非替代：</b>同一 kernel 可以先做 tensor prefetch，再用带 <code>EVICT_LAST</code> 的正式 load，同时 descriptor 使用 256B L2 promotion。三者分别控制时间、替换倾向和填充粒度；最终收益仍需以 DRAM 流量、L2 hit rate 和 kernel 时间验证。</div>
+</section>
+
+<section class="mode-feature" id="mode-tensormap">
+  <div class="mode-head"><div><h3>09 · TensorMap.replace：12 类可替换字段</h3><p>设备端重编码描述符模板，避免每个 problem 都回 host 重建；但更新协议与字段合法性必须一起设计。</p></div><a href="#tensormap">查看背景章节 ↓</a></div>
+  <div class="mode-block"><h4>A · 字段逐项分析</h4><div class="table-wrap" tabindex="0" aria-label="TensorMap replace 字段模式分析表"><table class="mode-table"><thead><tr><th>字段</th><th>为什么需要</th><th>什么 case 使用</th><th>具体案例与证据</th></tr></thead><tbody>
+    <tr><td><code>global_address</code></td><td>同一形状与 tile 逻辑切换到另一份矩阵／张量，无需重建其余字段。</td><td>grouped GEMM 的下一 A／B／D 指针、persistent scheduler 切换 problem、设备侧双缓冲对象切换。</td><td><span class="evidence real">真实启用</span><br>CUTLASS grouped GEMM 在设备端替换各 problem 的矩阵地址，再执行 fence 协议。<a href="https://github.com/NVIDIA/cutlass/blob/main/include/cutlass/gemm/collective/sm90_mma_array_tma_gmma_ss_warpspecialized.hpp" target="_blank" rel="noopener">源码</a></td></tr>
+    <tr><td><code>rank</code></td><td>逻辑张量维数变化时，坐标、box、stride 等字段的解释也随之变化。</td><td>同一设备模板在 2D 矩阵与 3D batched tensor 间重编码；必须同步重写所有 rank 相关字段。</td><td><span class="evidence spec">规范案例</span><br>PTX 允许替换；未找到 grouped GEMM 动态改 rank 的证据，不能从“改 shape”推导为“改 rank”。</td></tr>
+    <tr><td><code>box_dim</code></td><td>同一全局对象需要不同硬件 tile 尺寸，改变单次 TMA 操作覆盖的 box。</td><td>不同阶段选择不同 K block、尾部专用小 tile、在少量预设 shape 间复用描述符模板。</td><td><span class="evidence spec">规范案例</span><br>未找到生产启用；box 改动会影响 SMEM 容量、transaction bytes、swizzle 合法性，不能只改一个字段。</td></tr>
+    <tr><td><code>global_dim</code></td><td>problem 的 M／N／K、batch 或空间尺寸改变，OOB 边界也必须随之改变。</td><td>grouped GEMM 每个 problem 尺寸不同；动态分辨率的批量张量。</td><td><span class="evidence real">真实启用</span><br>CUTLASS grouped GEMM 随 problem shape 更新全局维数；OOB 由新边界自动处理。<a href="https://github.com/NVIDIA/cutlass/blob/main/include/cutlass/gemm/collective/sm90_mma_array_tma_gmma_ss_warpspecialized.hpp" target="_blank" rel="noopener">源码</a></td></tr>
+    <tr><td><code>global_stride</code></td><td>形状相同但 leading dimension、行间距或 batch 间距不同，坐标到地址的映射必须更新。</td><td>不同 padded matrix、带独立 stride 的 grouped problem、非紧凑 batch 张量。</td><td><span class="evidence real">真实启用</span><br>CUTLASS grouped GEMM 更新 problem 对应 strides；PTX 中按维索引替换，且要满足字节与对齐约束。<a href="https://github.com/NVIDIA/cutlass/blob/main/include/cutlass/gemm/collective/sm90_mma_array_tma_gmma_ss_warpspecialized.hpp" target="_blank" rel="noopener">源码</a></td></tr>
+    <tr><td><code>element_stride</code></td><td>逻辑相邻元素在 global 中并不相邻，需要独立于维间 stride 的元素步进。</td><td>交错或子采样视图、固定因子的结构化解包；只在 TensorMap 规则允许的范围内使用。</td><td><span class="evidence spec">规范案例</span><br>设备端可按维替换；未找到生产启用，不把它当作任意 gather 或任意非单位元素访问许可。</td></tr>
+    <tr><td><code>elemtype</code></td><td>地址和形状可复用，但字节解释、每元素大小或专用数据类型改变。</td><td>同构 buffer 在支持的 FP16／BF16 等类型间重编码，或专用存储解释切换。</td><td><span class="evidence spec">规范案例</span><br>仅规范案例；元素大小变化会连带影响 stride、box 字节数、swizzle 与 SMEM 预算，不能孤立替换。</td></tr>
+    <tr><td><code>interleave_layout</code></td><td>下一份 global tensor 从普通布局变为 16B／32B channel packet，或反向切换。</td><td>同一 kernel 处理 non-interleave 与 NCHWc 类输入的预设分支。</td><td><span class="evidence spec">规范案例</span><br>仅规范案例；切换时必须重查 rank、swizzle、末 slice 和 im2col／gather4 约束。</td></tr>
+    <tr><td><code>swizzle_mode</code></td><td>下一块 SMEM tile 的消费者布局不同，需要在 None／32B／64B／96B／128B 间重编码。</td><td>不同计算阶段复用描述符模板、预设 layout 方案之间切换。</td><td><span class="evidence spec">规范案例</span><br>未找到生产动态切换；consumer GMMA layout 与 box 内连续宽度必须同步调整，否则数据虽到齐也会被错误解释。</td></tr>
+    <tr><td><code>swizzle_atomicity</code></td><td>128B 系列内部的原子布局变化，消费者需要 16B／32B／flip／64B 中另一种组织。</td><td>仅在使用相应 128B swizzle 家族且消费者布局确已变化时。</td><td><span class="evidence spec">规范案例</span><br>仅规范语义；不能用它把普通 128B mode 自动变成 96B W 布局，也不能绕过 load／store 限制。</td></tr>
+    <tr><td><code>fill_mode</code></td><td>不同 problem 的 OOB 语义不同：普通零填充，或特殊浮点数据需要 NaN 填充。</td><td>zero 与 OOB-NaN 两套预设算法共用描述符模板时。</td><td><span class="evidence spec">规范案例</span><br>未找到生产动态切换；NaN 只服务明确需要污染传播的算法，不是通用 padding 默认。</td></tr>
+    <tr><td><code>alloc_class</code><br>PTX 9.5</td><td>global address 指向的底层内存分配类别需要与描述符一致。</td><td>支持该字段的系统上，在符合规则的分配类别之间重编码地址元数据。</td><td><span class="evidence spec">规范案例</span><br>PTX 9.5 新增；替换 global address 未显式指定 alloc class 时默认 small，必须与底层分配匹配。未找到生产启用。</td></tr>
+  </tbody></table></div></div>
+  <div class="mode-block"><h4>B · 更新协议不是可选项</h4><div class="decision-flow"><div><b>1 · 修改模板</b><span>仅在 global 或 shared::cta 的合法 128B TensorMap 存储上替换字段。</span></div><div><b>2 · Release</b><span><code>tensormap.cp_fenceproxy</code> 把 generic proxy 更新发布给 tensormap／async proxy。</span></div><div><b>3 · Acquire</b><span>使用描述符的线程执行对应 acquire fence，再发起 TMA；跨线程时还要有执行同步。</span></div></div><p class="mode-note">只支持 tiled TensorMap，不支持 im2col map。CUTLASS grouped GEMM 的真实证据是 address／dims／strides 更新；其余字段列出的是设备端重编码能力，不应被写成 grouped GEMM 已逐项使用。</p></div>
+</section>
+
+<section class="feature" id="tile">
+  <div class="feature-top"><div class="feature-no">01</div><div><h2>Tiled 多维 load／store</h2><p class="feature-sub">Bounding Box · 动态坐标 · 1D～5D</p></div></div>
+  <div class="problem"><b>解决什么</b><p>GEMM、Attention 等 kernel 只需要全局张量中的一块，但每轮都为每个线程计算地址、处理行跨度和多维层级，会让主循环充满整数运算与控制指令。</p></div>
+  <section class="chapter"><h3><span class="tag">1</span>功能定义</h3>
+    <p>Tiled mode 用 TensorMap 描述 1D～5D 全局张量，以及一个最多同样维数的 <span class="inline-code">boxDim</span>。每次指令提供逻辑坐标，选择全局张量中的一个 box，在 global memory 与 shared memory 之间异步搬运。</p>
+    <ul><li><b>globalDim／globalStrides</b>：全局张量的逻辑形状与跨维字节步幅。</li><li><b>boxDim</b>：单次 TMA 操作覆盖的逻辑块，也就是常说的 tile／bounding box。</li><li><b>指令坐标</b>：按元素索引选择块的位置；描述符复用，坐标随 mainloop 改变。</li></ul>
+  </section>
+  <section class="chapter"><h3><span class="tag">2</span>PTX 指令</h3>
+    <div class="code"><div class="code-title">LOAD / STORE · 示意形式，省略可选修饰符 <button class="copy">复制</button></div><pre><span class="cm">// Global → Shared：到达后由 mbarrier 记账</span>
+<span class="kw">cp.async.bulk.tensor.2d</span>.shared::cluster.global
+  .mbarrier::complete_tx::bytes
+  [<span class="ty">smem_tile</span>], [<span class="ty">tensor_map</span>, {x, y}], [<span class="ty">mbar</span>];
+
+<span class="cm">// Shared → Global：由 bulk-group 跟踪</span>
+<span class="kw">cp.async.bulk.tensor.2d</span>.global.shared::cta.bulk_group
+  [<span class="ty">tensor_map</span>, {x, y}], [<span class="ty">smem_tile</span>];</pre></div>
+    <p>将 <span class="inline-code">.2d</span> 换为 <span class="inline-code">.1d/.3d/.4d/.5d</span> 即对应不同维数。坐标不是任意字节指针算术，而是 TensorMap 所定义坐标空间中的元素位置。</p>
+  </section>
+  <section class="chapter"><h3><span class="tag">3</span>使用场景和原理</h3>
+    <div class="two-col"><div class="mini"><h4>软件给出什么</h4><p>初始化时构造描述符；每个流水线 stage 只更新 k／m／n 或 batch／head 等坐标，并提供当前 stage 的 SMEM 地址。</p></div><div class="mini"><h4>硬件代替什么</h4><p>遍历 box 内元素、组合全局步幅、生成访问，并按描述符写入连续或 swizzled SMEM tile。</p></div></div>
+    <figure class="diagram"><svg viewBox="0 0 760 260" role="img" aria-label="从多维全局张量中选择 tile 搬运到 shared memory">
+    <defs><marker id="a1" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#6d8c35"/></marker></defs>
+    <text x="35" y="28" class="svg-label" font-weight="700">Global tensor</text>
+    <g stroke="#c6d0c3" fill="#f2f5ed"><rect x="35" y="45" width="330" height="180"/><path d="M90 45V225M145 45V225M200 45V225M255 45V225M310 45V225M35 90H365M35 135H365M35 180H365"/></g>
+    <rect x="200" y="90" width="110" height="90" fill="#cde59a" stroke="#6d8c35" stroke-width="2"/><text x="255" y="139" text-anchor="middle" class="svg-label">boxDim</text><text x="210" y="82" class="svg-mono">coords(x,y)</text>
+    <path d="M390 135 H480" stroke="#6d8c35" stroke-width="2" marker-end="url(#a1)"/><text x="435" y="120" text-anchor="middle" class="svg-small">one TMA op</text>
+    <text x="505" y="28" class="svg-label" font-weight="700">Shared-memory tile</text><rect x="505" y="65" width="180" height="140" rx="8" fill="#e8f2f3" stroke="#7daab2"/><g stroke="#b4ced2"><path d="M550 65V205M595 65V205M640 65V205M505 100H685M505 135H685M505 170H685"/></g><text x="595" y="230" text-anchor="middle" class="svg-small">计算以 tile 为单位消费</text>
+    </svg><figcaption>图 1 · 全局布局与 tile 尺寸相对稳定，放入 TensorMap；tile 位置随循环变化，留在指令坐标中。</figcaption></figure>
+  </section>
+  <section class="chapter"><h3><span class="tag">4</span>实际应用 · 开源代码</h3>
+    <div class="source"><div class="source-head"><h4>CUTLASS · Hopper warp-specialized GEMM mainloop</h4><a href="https://github.com/NVIDIA/cutlass/blob/main/include/cutlass/gemm/collective/sm90_mma_tma_gmma_ss_warpspecialized.hpp" target="_blank" rel="noopener">打开源码 ↗</a></div>
+      <span class="path">include/cutlass/gemm/collective/sm90_mma_tma_gmma_ss_warpspecialized.hpp</span>
+      <p> collective 分别持有 A／B 的 TMA descriptor。一个 elected thread 发起整块 load，把当前 mainloop 的 tile 坐标与 pipeline barrier 组合；GMMA 再从 stage 中消费。</p>
+      <div class="source-snippet">copy(mainloop_params.tma_load_a.with(*tma_barrier, mcast_mask_a),
+     tAgA(_,_,_,k_tile), tAsA(_,_,_,write_stage));</div>
+      <p class="source-foot">对应 epilogue 中的 TMA store 见 <a href="https://github.com/NVIDIA/cutlass/blob/main/include/cutlass/epilogue/collective/sm90_epilogue_tma_warpspecialized.hpp" target="_blank" rel="noopener">sm90_epilogue_tma_warpspecialized.hpp</a>：计算结果进入 SMEM 后，由 <span class="inline-code">copy(params.tma_store_d, ...)</span> 写回 D。</p>
+    </div>
+  </section>
+  <div class="takeaway"><b>实现要点：</b>描述符把“结构”从循环中抽走。设计时应同时确定 global layout、box、SMEM stage 布局和坐标推进方式，而不是先写普通拷贝再机械替换。</div>
+</section>
+
+<section class="feature" id="oob">
+  <div class="feature-top"><div class="feature-no">02</div><div><h2>OOB 填充与 traversal stride</h2><p class="feature-sub">Zero-fill · OOB-NaN · 元素遍历间隔</p></div></div>
+  <div class="problem"><b>解决什么</b><p>张量尾块越过边界、卷积 padding，以及 dilation／下采样等规则访问，本来都需要额外分支或地址变换。TMA 把其中适合描述符表达的部分下沉到搬运引擎。</p></div>
+  <section class="chapter"><h3><span class="tag">1</span>功能定义</h3>
+    <p><b>OOB（out-of-bounds）</b>定义 box 与全局张量边界相交时的行为：load 可将越界位置填零，或使用特殊 OOB-NaN 填充。<b>traversal stride</b>（TensorMap 的 <span class="inline-code">elementStrides</span>）定义 box 内相邻逻辑元素在全局张量坐标中的遍历间隔。</p>
+    <div class="note warning"><b>最容易混淆：</b>traversal stride 不是 global memory 的行间距。globalStrides 决定“跨维时内存怎么走”，elementStrides 决定“逻辑遍历每次跨几个元素”。</div>
+  </section>
+  <section class="chapter"><h3><span class="tag">2</span>PTX 指令</h3>
+    <p>OOB 和 traversal stride 都不是新的 cp 助记符，而是 <b>TensorMap 的属性</b>；主指令仍然是 tiled／im2col 形式的 <span class="inline-code">cp.async.bulk.tensor</span>。</p>
+    <div class="code"><div class="code-title">TENSORMAP FIELDS · 概念视图，不是构造函数签名 <button class="copy">复制</button></div><pre>tensor_map.globalDim      = {W, H, C, N};
+tensor_map.globalStrides  = {stride_H_bytes, ...};
+tensor_map.boxDim         = {box_W, box_H, box_C};
+tensor_map.elementStrides = {step_W, step_H, step_C};
+tensor_map.OOBFill        = ZERO <span class="cm">// 或特殊 OOB-NaN 模式</span></pre></div>
+  </section>
+  <section class="chapter"><h3><span class="tag">3</span>使用场景和原理</h3>
+    <ul><li><b>尾块：</b>当 M／N／K 不是 tile 整数倍，box 仍可按统一形状发起，越界输入填零，计算路径保持规则。</li><li><b>卷积边界：</b>输入激活 tile 覆盖 halo；padding 区域由边界机制处理，避免单独构造零填充输入。</li><li><b>膨胀／规则抽样：</b>遍历间隔大于 1 时，box 的逻辑位置按间隔映射回全局张量。</li></ul>
+    <figure class="diagram"><svg viewBox="0 0 780 255" role="img" aria-label="tile 越过张量边界时由 TMA 对越界位置填零">
+    <text x="30" y="28" class="svg-label" font-weight="700">逻辑 box 与有效全局区域</text><rect x="30" y="50" width="370" height="160" rx="7" fill="#f1f4ed" stroke="#aab7a5"/><rect x="30" y="50" width="245" height="160" fill="#dcecd0"/><path d="M275 50V210" stroke="#5c744c" stroke-width="2" stroke-dasharray="5 4"/><text x="150" y="137" text-anchor="middle" class="svg-label">有效 tensor</text><text x="338" y="137" text-anchor="middle" class="svg-label">OOB → 0</text><text x="288" y="42" class="svg-small">global boundary</text>
+    <path d="M427 130H490" stroke="#6d8c35" stroke-width="2"/><path d="M485 125L495 130L485 135" fill="#6d8c35"/>
+    <text x="520" y="28" class="svg-label" font-weight="700">SMEM 中得到完整规则 tile</text><g><rect x="520" y="50" width="210" height="160" rx="7" fill="#dcecd0"/><rect x="665" y="50" width="65" height="160" fill="#f5ead3"/><path d="M555 50V210M590 50V210M625 50V210M660 50V210M695 50V210M520 90H730M520 130H730M520 170H730" stroke="#fff" stroke-width="2"/></g><text x="697" y="137" text-anchor="middle" class="svg-label">0</text>
+    </svg><figcaption>图 2 · 搬运引擎把不规则的全局边界变成规则 SMEM tile。它消除的是“搬运边界”的特判，不自动替代 epilogue 中所有融合操作的谓词。</figcaption></figure>
+  </section>
+  <section class="chapter"><h3><span class="tag">4</span>实际应用 · 开源代码</h3>
+    <div class="source"><div class="source-head"><h4>CUTLASS · implicit-GEMM convolution 描述符</h4><a href="https://github.com/NVIDIA/cutlass/blob/main/include/cutlass/conv/collective/sm90_implicit_gemm_gmma_ss_warpspecialized.hpp" target="_blank" rel="noopener">打开源码 ↗</a></div>
+      <span class="path">include/cutlass/conv/collective/sm90_implicit_gemm_gmma_ss_warpspecialized.hpp</span>
+      <p><span class="inline-code">make_im2col_tma_copy</span> 接收 lower／upper corner、padding、<span class="inline-code">traversal_stride</span> 和 dilation。边界、滤波器位置与输入坐标之间的关系由描述符建立，mainloop 不必为每个输入元素执行 im2col 地址计算。</p>
+      <div class="source-snippet">// TensorMap 构造输入包含：
+lower_corner, upper_corner, padding,
+traversal_stride, dilation</div>
+      <p class="source-foot">CUTLASS epilogue 仍能看到 residue predication：融合 bias、activation 或逐元素输出时，有效元素约束取决于完整操作，不能简单理解为“用了 TMA 就没有边界判断”。</p>
+    </div>
+  </section>
+  <div class="takeaway"><b>实现要点：</b>硬件验证要覆盖“box 部分越界”和“多维也越界”，软件验证则要把 OOB 语义与上层算法对 padding／residue 的定义逐一对齐。</div>
+</section>
+
+<section class="feature" id="swizzle">
+  <div class="feature-top"><div class="feature-no">03</div><div><h2>Shared-memory swizzle</h2><p class="feature-sub">None · 32B · 64B · 96B · 128B · atomicity 子模式</p></div></div>
+  <div class="problem"><b>解决什么</b><p>规则二维 tile 直接线性放入 SMEM，可能让 GMMA／计算线程的访问落到相同 bank，也未必匹配计算指令要求的布局。逐线程重排又会抵消异步搬运的收益。</p></div>
+  <section class="chapter"><h3><span class="tag">1</span>功能定义</h3>
+    <p>Swizzle 是 TMA 写入 SMEM 时执行的地址重排。TensorMap 声明模式，TMA 引擎在搬运过程中完成；后续计算必须使用与之匹配的 SMEM layout 解释数据。</p>
+    <p>模式包括 None、32B、64B、96B、128B；128B 还定义了 atomicity 子模式。它们描述的是 <b>共享内存内部布局</b>，不是 global tensor 的维度，也不是 cache line 交织。</p>
+  </section>
+  <section class="chapter"><h3><span class="tag">2</span>PTX 指令</h3>
+    <p>PTX 拷贝指令不需要额外的 “swizzle now” 操作。模式编码在 <span class="inline-code">tensor_map</span> 中，同一条 tiled load 会按描述符选择目标地址生成规律。</p>
+    <div class="code"><div class="code-title">DESCRIPTOR-DRIVEN ADDRESSING <button class="copy">复制</button></div><pre><span class="cm">// 指令形式不变；变化在 TensorMap.swizzle</span>
+<span class="kw">cp.async.bulk.tensor.2d</span>.shared::cluster.global
+  .mbarrier::complete_tx::bytes
+  [smem_tile], [tensor_map, {x, y}], [mbar];
+
+<span class="cm">// 128B 模式的典型 16B chunk 视图：</span>
+physical_chunk = logical_chunk XOR (row &amp; <span class="numlit">7</span>);</pre></div>
+    <p>上面的 XOR 仅用于建立 128B 模式的直觉，不应直接推广到所有模式。真实实现必须遵循 TensorMap 的 box、内部维度、SMEM 对齐和 GMMA layout 约束。</p>
+  </section>
+  <section class="chapter"><h3><span class="tag">3</span>使用场景和原理</h3>
+    <figure class="diagram"><svg viewBox="0 0 820 305" role="img" aria-label="128B swizzle 将每行的 16B chunk 按行号异或重排">
+    <text x="28" y="27" class="svg-label" font-weight="700">逻辑行（每格 16B）</text><text x="464" y="27" class="svg-label" font-weight="700">128B swizzle 后</text>
+    <g id="swz"></g>
+    <script>/* SVG cells are emitted by the page script for consistent geometry. */</script>
+    <g stroke="#c6d1c4" fill="#f2f5ee">
+    <rect x="28" y="46" width="320" height="224"/><rect x="464" y="46" width="320" height="224"/></g>
+    <g font-family="ui-monospace,monospace" font-size="10" text-anchor="middle">
+    <text x="68" y="72" fill="#354532">0</text><text x="108" y="72" fill="#354532">1</text><text x="148" y="72" fill="#354532">2</text><text x="188" y="72" fill="#354532">3</text><text x="228" y="72" fill="#354532">4</text><text x="268" y="72" fill="#354532">5</text><text x="308" y="72" fill="#354532">6</text><text x="348" y="72" fill="#354532" transform="translate(-20 0)">7</text>
+    <text x="504" y="72" fill="#354532">0</text><text x="544" y="72" fill="#354532">1</text><text x="584" y="72" fill="#354532">2</text><text x="624" y="72" fill="#354532">3</text><text x="664" y="72" fill="#354532">4</text><text x="704" y="72" fill="#354532">5</text><text x="744" y="72" fill="#354532">6</text><text x="764" y="72" fill="#354532">7</text>
+    </g>
+    <g stroke="#fff" stroke-width="2">
+    <path d="M28 74H348M28 102H348M28 130H348M28 158H348M28 186H348M28 214H348M28 242H348M68 46V270M108 46V270M148 46V270M188 46V270M228 46V270M268 46V270M308 46V270"/>
+    <path d="M464 74H784M464 102H784M464 130H784M464 158H784M464 186H784M464 214H784M464 242H784M504 46V270M544 46V270M584 46V270M624 46V270M664 46V270M704 46V270M744 46V270"/></g>
+    <g font-family="ui-monospace,monospace" font-size="11" text-anchor="middle">
+    <text x="504" y="100" fill="#456122">1</text><text x="544" y="100" fill="#456122">0</text><text x="584" y="100" fill="#456122">3</text><text x="624" y="100" fill="#456122">2</text><text x="664" y="100" fill="#456122">5</text><text x="704" y="100" fill="#456122">4</text><text x="744" y="100" fill="#456122">7</text><text x="764" y="100" fill="#456122">6</text>
+    <text x="504" y="128" fill="#456122">2</text><text x="544" y="128" fill="#456122">3</text><text x="584" y="128" fill="#456122">0</text><text x="624" y="128" fill="#456122">1</text><text x="664" y="128" fill="#456122">6</text><text x="704" y="128" fill="#456122">7</text><text x="744" y="128" fill="#456122">4</text><text x="764" y="128" fill="#456122">5</text>
+    <text x="504" y="156" fill="#456122">3</text><text x="544" y="156" fill="#456122">2</text><text x="584" y="156" fill="#456122">1</text><text x="624" y="156" fill="#456122">0</text><text x="664" y="156" fill="#456122">7</text><text x="704" y="156" fill="#456122">6</text><text x="744" y="156" fill="#456122">5</text><text x="764" y="156" fill="#456122">4</text>
+    <text x="504" y="184" fill="#456122">4</text><text x="544" y="184" fill="#456122">5</text><text x="584" y="184" fill="#456122">6</text><text x="624" y="184" fill="#456122">7</text><text x="664" y="184" fill="#456122">0</text><text x="704" y="184" fill="#456122">1</text><text x="744" y="184" fill="#456122">2</text><text x="764" y="184" fill="#456122">3</text>
+    <text x="504" y="212" fill="#456122">5</text><text x="544" y="212" fill="#456122">4</text><text x="584" y="212" fill="#456122">7</text><text x="624" y="212" fill="#456122">6</text><text x="664" y="212" fill="#456122">1</text><text x="704" y="212" fill="#456122">0</text><text x="744" y="212" fill="#456122">3</text><text x="764" y="212" fill="#456122">2</text>
+    <text x="504" y="240" fill="#456122">6</text><text x="544" y="240" fill="#456122">7</text><text x="584" y="240" fill="#456122">4</text><text x="624" y="240" fill="#456122">5</text><text x="664" y="240" fill="#456122">2</text><text x="704" y="240" fill="#456122">3</text><text x="744" y="240" fill="#456122">0</text><text x="764" y="240" fill="#456122">1</text>
+    <text x="504" y="268" fill="#456122">7</text><text x="544" y="268" fill="#456122">6</text><text x="584" y="268" fill="#456122">5</text><text x="624" y="268" fill="#456122">4</text><text x="664" y="240" fill="#456122" transform="translate(0 28)">3</text><text x="704" y="268" fill="#456122">2</text><text x="744" y="268" fill="#456122">1</text><text x="764" y="268" fill="#456122">0</text>
+    </g><path d="M375 153H435" stroke="#6d8c35" stroke-width="2"/><path d="M430 148L440 153L430 158" fill="#6d8c35"/>
+    </svg><figcaption>图 3 · 128B 模式的 16B-chunk 直觉图：第 r 行的 chunk 索引与 r mod 8 异或。目标是在不改变逻辑张量的前提下改变物理 SMEM 分布。</figcaption></figure>
+    <div class="two-col"><div class="mini"><h4>对硬件</h4><p>地址生成器必须同时理解 global box 遍历和 swizzled SMEM 写入，并满足对齐与原子性约束。</p></div><div class="mini"><h4>对软件</h4><p>不能再把 SMEM tile 当普通行主序数组；CUTE layout／GMMA descriptor 必须选中同一 swizzle 规律。</p></div></div>
+  </section>
+  <section class="chapter"><h3><span class="tag">4</span>实际应用 · 开源代码</h3>
+    <div class="source"><div class="source-head"><h4>FlashAttention · Q／K／V 的 swizzle-aware TMA 布局</h4><a href="https://github.com/Dao-AILab/flash-attention/blob/main/hopper/mainloop_fwd_sm90_tma_gmma_ws.hpp" target="_blank" rel="noopener">打开源码 ↗</a></div>
+      <span class="path">hopper/mainloop_fwd_sm90_tma_gmma_ws.hpp</span>
+      <p>Q／K／V 按 seqlen、head、batch 等多维 layout 构造 TensorMap；shared layout 由 <span class="inline-code">ss_smem_selector</span> 选择。TMA 负责按选中的布局写入，GMMA 使用对应的 SMEM 描述符消费。</p>
+      <div class="source-snippet">// 同一 mainloop 中：
+SM90_TMA_LOAD       // Q
+TMA::CacheHintSm90::EVICT_LAST  // K/V load policy
+ss_smem_selector    // Shared layout / swizzle selection</div>
+      <p class="source-foot">这个例子说明 swizzle 不是孤立的“优化开关”：TensorMap、SMEM layout 和 GMMA descriptor 三者必须作为一个整体设计。</p>
+    </div>
+  </section>
+  <div class="takeaway"><b>实现要点：</b>最常见的软件错误是“TMA 已按模式写入，但计算仍按线性 layout 读取”；最常见的硬件错误是只在单搬数据上验证，而未覆盖真实 GMMA 访问序列。</div>
+</section>
+
+<section class="feature" id="multicast">
+  <div class="feature-top"><div class="feature-no">04</div><div><h2>Cluster multicast</h2><p class="feature-sub">一次 global 读取 · 多个 CTA SMEM 投递</p></div></div>
+  <div class="problem"><b>解决什么</b><p>一个 cluster 内多个 CTA 协同计算时，常有两个以上 CTA 需要完全相同的 A 或 B tile。若各自发起 global load，会重复占用 L2／互连带宽，也重复执行地址生成。</p></div>
+  <section class="chapter"><h3><span class="tag">1</span>功能定义</h3>
+    <p>Multicast 让一条 tensor load 将同一 global tile 分发到 CTA mask 指定的多个目的 CTA。每个目的 CTA 在自己的 shared memory 中收到一份数据，并用自己的 mbarrier 跟踪事务。</p>
+    <p>它是 <b>数据复用机制</b>，不是把多个不同 tile 合并成一条 gather，也不是在 CTA 之间广播寄存器值。</p>
+  </section>
+  <section class="chapter"><h3><span class="tag">2</span>PTX 指令</h3>
+    <div class="code"><div class="code-title">MULTICAST LOAD · 示意形式 <button class="copy">复制</button></div><pre><span class="kw">cp.async.bulk.tensor.2d</span>.shared::cluster.global
+  .mbarrier::complete_tx::bytes.multicast::cluster
+  [<span class="ty">smem_tile</span>], [<span class="ty">tensor_map</span>, {x, y}],
+  [<span class="ty">mbar</span>], <span class="ty">cta_mask</span>;
+
+<span class="cm">// 各接收 CTA 在本 CTA 的 mbarrier 上登记预期字节数</span>
+<span class="kw">mbarrier.arrive.expect_tx</span>.shared::cta.b64
+  [mbar], <span class="ty">transaction_bytes</span>;</pre></div>
+    <p><span class="inline-code">cta_mask</span> 决定接收者集合。发起方、接收方、SMEM stage 生命周期与 barrier 相位必须协同；只复制 mask 而没有相应 pipeline 同步，会读到未完成或已被覆盖的 stage。</p>
+  </section>
+  <section class="chapter"><h3><span class="tag">3</span>使用场景和原理</h3>
+    <figure class="diagram"><svg viewBox="0 0 850 290" role="img" aria-label="TMA multicast 从全局张量读取一个 tile 并分发到四个 CTA">
+    <defs><marker id="a4" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#6d8c35"/></marker></defs>
+    <rect x="30" y="68" width="180" height="150" rx="12" fill="#edf2e3" stroke="#aabb94"/><text x="120" y="98" text-anchor="middle" class="svg-label" font-weight="700">Global B tile</text><rect x="65" y="116" width="110" height="70" fill="#d6e9ae" stroke="#83a24e"/><text x="120" y="157" text-anchor="middle" class="svg-mono">coords(k,n)</text>
+    <rect x="310" y="89" width="190" height="105" rx="16" fill="#17251d"/><text x="405" y="128" text-anchor="middle" fill="#b6df6f" font-family="Segoe UI" font-size="16" font-weight="700">TMA multicast</text><text x="405" y="156" text-anchor="middle" fill="#c6d1c9" font-family="Segoe UI" font-size="11">cta_mask = 0b1111</text><text x="405" y="176" text-anchor="middle" fill="#879a8d" font-family="Segoe UI" font-size="10">一次 global tile 读取</text>
+    <path d="M220 142H295" stroke="#6d8c35" stroke-width="2" marker-end="url(#a4)"/>
+    <rect x="600" y="25" width="215" height="240" rx="14" fill="#f8faf5" stroke="#cbd5c2"/><text x="707" y="49" text-anchor="middle" class="svg-small">CTA cluster</text>
+    <g fill="#e8f2f3" stroke="#8fb0b8"><rect x="625" y="65" width="75" height="70" rx="8"/><rect x="715" y="65" width="75" height="70" rx="8"/><rect x="625" y="155" width="75" height="70" rx="8"/><rect x="715" y="155" width="75" height="70" rx="8"/></g>
+    <g class="svg-label" text-anchor="middle"><text x="662" y="92">CTA 0</text><text x="752" y="92">CTA 1</text><text x="662" y="182">CTA 2</text><text x="752" y="182">CTA 3</text></g><g class="svg-small" text-anchor="middle"><text x="662" y="116">B copy</text><text x="752" y="116">B copy</text><text x="662" y="206">B copy</text><text x="752" y="206">B copy</text></g>
+    <g fill="none" stroke="#6d8c35" stroke-width="2" marker-end="url(#a4)"><path d="M510 125H560V100H610"/><path d="M510 135H580V100H700"/><path d="M510 145H560V190H610"/><path d="M510 155H580V190H700"/></g>
+    </svg><figcaption>图 4 · 同一份 B tile 被多个 CTA 使用。收益来自减少重复 global 流量；SMEM 容量不会因此共享，每个接收 CTA 仍有自己的副本。</figcaption></figure>
+    <p>典型二维 CTA tile 划分中，沿 M 方向的一组 CTA 可共享 B，沿 N 方向的一组 CTA 可共享 A。CUTLASS 因此为 A、B 分别构造 mask，而不是假定两者使用同一广播拓扑。</p>
+  </section>
+  <section class="chapter"><h3><span class="tag">4</span>实际应用 · 开源代码</h3>
+    <div class="source"><div class="source-head"><h4>CUTLASS · A／B 独立 multicast mask</h4><a href="https://github.com/NVIDIA/cutlass/blob/main/include/cutlass/gemm/collective/sm90_mma_tma_gmma_ss_warpspecialized.hpp" target="_blank" rel="noopener">打开源码 ↗</a></div>
+      <span class="path">include/cutlass/gemm/collective/sm90_mma_tma_gmma_ss_warpspecialized.hpp</span>
+      <p>mainloop 使用 <span class="inline-code">PipelineTmaAsync</span>，在 <span class="inline-code">SM90_TMA_LOAD</span> 与 <span class="inline-code">SM90_TMA_LOAD_MULTICAST</span> 之间选择。A 使用 <span class="inline-code">mcast_mask_a</span>，B 使用 <span class="inline-code">mcast_mask_b</span>。</p>
+      <div class="source-snippet">copy(mainloop_params.tma_load_a.with(*tma_barrier, mcast_mask_a), ...);
+copy(mainloop_params.tma_load_b.with(*tma_barrier, mcast_mask_b), ...);</div>
+      <p class="source-foot">源码中的 <span class="inline-code">TmaTransactionBytes</span> 与 barrier 共同保证：每个 stage 的“应到字节数”和真实 multicast 投递相匹配。</p>
+    </div>
+  </section>
+  <div class="takeaway"><b>实现要点：</b>Multicast 的性能模型要同时考虑 global 流量节省与 cluster 同步成本。CTA 数增加并不必然更快，慢接收者也会影响共享 stage 的回收。</div>
+</section>
+
+<section class="feature" id="pipeline">
+  <div class="feature-top"><div class="feature-no">05</div><div><h2>异步完成机制与多阶段流水</h2><p class="feature-sub">mbarrier · expect_tx／complete_tx · bulk-group · async proxy</p></div></div>
+  <div class="problem"><b>解决什么</b><p>如果每次拷贝后都全线程同步，异步引擎再快也无法隐藏延迟。TMA 需要一种能按“整块数据是否到齐”同步，并能让 producer／consumer 在不同 stage 上并行工作的机制。</p></div>
+  <section class="chapter"><h3><span class="tag">1</span>功能定义</h3>
+    <ul><li><b>Load：</b>生产者在 mbarrier 上登记预期 transaction bytes；TMA 数据到达时执行 <span class="inline-code">complete_tx</span>，消费者等待 barrier phase 完成。</li><li><b>Store／reduce：</b>用 <span class="inline-code">bulk_group</span> 将提交的操作分组，通过 wait 等待完成或等待到可读回 SMEM 的程度。</li><li><b>Async proxy：</b>普通线程对 SMEM 的写入，需要 fence 才能对后续 TMA 读取可见；TensorMap 的 proxy 可见性另有专门规则。</li></ul>
+  </section>
+  <section class="chapter"><h3><span class="tag">2</span>PTX 指令</h3>
+    <div class="code"><div class="code-title">LOAD ACCOUNTING / STORE RETIREMENT <button class="copy">复制</button></div><pre><span class="cm">// 1) 为 load 登记预期到达字节数</span>
+<span class="kw">mbarrier.arrive.expect_tx</span>.shared::cta.b64 [mbar], tx_bytes;
+<span class="kw">cp.async.bulk.tensor.2d</span>.shared::cluster.global
+  .mbarrier::complete_tx::bytes [smem], [tmap, {x,y}], [mbar];
+<span class="cm">// 消费者用 mbarrier try_wait / test_wait 等等待 phase</span>
+
+<span class="cm">// 2) 普通 proxy 写 SMEM → async proxy 读取</span>
+<span class="kw">fence.proxy.async.shared::cta</span>;
+<span class="kw">cp.async.bulk.tensor.2d</span>.global.shared::cta.bulk_group
+  [tmap, {x,y}], [smem];
+<span class="kw">cp.async.bulk.commit_group</span>;
+<span class="kw">cp.async.bulk.wait_group.read</span> <span class="numlit">0</span>;  <span class="cm">// 示例：等至可重新读取源 SMEM</span></pre></div>
+    <p><span class="inline-code">wait_group</span> 与 <span class="inline-code">wait_group.read</span> 的等待强度不同：软件复用源 SMEM 前，必须选择满足实际生命周期要求的形式。</p>
+  </section>
+  <section class="chapter"><h3><span class="tag">3</span>使用场景和原理</h3>
+    <figure class="diagram"><svg viewBox="0 0 880 300" role="img" aria-label="TMA 多阶段流水线让多个 tile 的搬运与计算重叠">
+    <text x="28" y="29" class="svg-label" font-weight="700">时间 →</text><g class="svg-small"><text x="30" y="75">TMA producer</text><text x="30" y="135">GMMA consumer</text><text x="30" y="195">Epilogue / store</text></g>
+    <g stroke="#d4dcd0"><path d="M170 48V240M300 48V240M430 48V240M560 48V240M690 48V240M820 48V240"/></g>
+    <g><rect x="170" y="55" width="125" height="36" rx="7" fill="#d6e9ae"/><rect x="300" y="55" width="125" height="36" rx="7" fill="#d6e9ae"/><rect x="430" y="55" width="125" height="36" rx="7" fill="#d6e9ae"/><rect x="560" y="55" width="125" height="36" rx="7" fill="#d6e9ae"/></g>
+    <g class="svg-label" text-anchor="middle"><text x="232" y="78">load tile 0</text><text x="362" y="78">load tile 1</text><text x="492" y="78">load tile 2</text><text x="622" y="78">load tile 3</text></g>
+    <g fill="#cfe4e8"><rect x="245" y="115" width="180" height="36" rx="7"/><rect x="375" y="115" width="180" height="36" rx="7"/><rect x="505" y="115" width="180" height="36" rx="7"/><rect x="635" y="115" width="180" height="36" rx="7"/></g>
+    <g class="svg-label" text-anchor="middle"><text x="335" y="138">compute 0</text><text x="465" y="138">compute 1</text><text x="595" y="138">compute 2</text><text x="725" y="138">compute 3</text></g>
+    <rect x="635" y="175" width="180" height="36" rx="7" fill="#f0dfba"/><text x="725" y="198" text-anchor="middle" class="svg-label">TMA store + commit</text>
+    <path d="M170 246H815" stroke="#97a593" stroke-width="2"/><path d="M808 241L820 246L808 251" fill="#97a593"/>
+    <g fill="#8bc50a"><circle cx="295" cy="55" r="5"/><circle cx="425" cy="55" r="5"/><circle cx="555" cy="55" r="5"/></g><text x="170" y="278" class="svg-small">绿色点：complete_tx 使对应 stage 的 barrier 满足；计算无需等待所有 load 完成。</text>
+    </svg><figcaption>图 5 · 多阶段流水的核心不是“异步”三个字，而是用 stage 所有权和完成计数，让 load、compute、store 在同一时刻处理不同 tile。</figcaption></figure>
+    <div class="two-col"><div class="mini"><h4>为什么按字节记账</h4><p>一次 stage 可能组合多个 TMA 操作。expect_tx 建立总量，complete_tx 随数据到达抵扣；比逐指令轮询更适合整块 tile。</p></div><div class="mini"><h4>为什么需要 proxy fence</h4><p>TMA 与普通 ST 指令属于不同访问路径。程序顺序本身不足以建立 async proxy 对先前 SMEM 写入的可见性。</p></div></div>
+  </section>
+  <section class="chapter"><h3><span class="tag">4</span>实际应用 · 开源代码</h3>
+    <div class="two-col">
+      <div class="source"><div class="source-head"><h4>CUTLASS · PipelineTmaAsync</h4><a href="https://github.com/NVIDIA/cutlass/blob/main/include/cutlass/gemm/collective/sm90_mma_tma_gmma_ss_warpspecialized.hpp" target="_blank" rel="noopener">源码 ↗</a></div><p>producer 获取空 stage、发起 TMA；consumer 等待对应 full barrier。epilogue store 前调用 <span class="inline-code">fence_view_async_shared()</span>，再用 store pipeline 管理提交与退休。</p><p class="source-foot">同一 GEMM mainloop 与 epilogue 展示两种完成模型：load 用 mbarrier，store 用 bulk-group。</p></div>
+      <div class="source"><div class="source-head"><h4>FlashAttention · K／V 独立多阶段</h4><a href="https://github.com/Dao-AILab/flash-attention/blob/main/hopper/mainloop_fwd_sm90_tma_gmma_ws.hpp" target="_blank" rel="noopener">源码 ↗</a></div><p>Q、K、V 分别由 TMA 搬运，K／V 使用独立 pipeline stage，与 Softmax／GEMM 的 warp-specialized 工作流重叠。</p><p class="source-foot">底层 <span class="inline-code">mbarrier.arrive.expect_tx</span> 的 PTX 封装可见 <a href="https://github.com/NVIDIA/cutlass/blob/main/include/cute/arch/copy_sm90_desc.hpp" target="_blank" rel="noopener">CUTLASS copy_sm90_desc.hpp</a>。</p></div>
+    </div>
+  </section>
+  <div class="takeaway"><b>实现要点：</b>验证时不应只检查“最终数据对不对”。必须覆盖 barrier 相位、预期字节数、stage 复用、等待深度和 proxy fence；很多竞态只有在特定延迟序列下才出现。</div>
+</section>
+
+<section class="feature" id="im2col">
+  <div class="feature-top"><div class="feature-no">06</div><div><h2>im2col 与专用数据布局</h2><p class="feature-sub">NWC／NHWC／NDHWC · interleave · W 系列模式</p></div></div>
+  <div class="problem"><b>解决什么</b><p>把卷积转成 GEMM 时，若显式生成 im2col 矩阵，同一输入像素会因滤波器窗口重叠而被复制多次，产生巨大内存和带宽开销。TMA 可以在搬运激活 tile 时直接形成 implicit-GEMM 所需视图。</p></div>
+  <section class="chapter"><h3><span class="tag">1</span>功能定义</h3>
+    <p><b>im2col mode</b> 面向 NWC、NHWC、NDHWC 等布局，支持 3D～5D 形式，把卷积窗口、padding、halo、dilation 等映射合并进地址生成。输出到 SMEM 的仍是供 GMMA 消费的 tile，而不是一张写回 global memory 的展开矩阵。</p>
+    <div class="two-col"><div class="mini"><h4>Interleave：None／16B／32B</h4><p>用于通道或分量按 16B／32B 组交错的 global 布局。它描述内存组如何解释，与 SMEM bank swizzle 是正交概念。</p></div><div class="mini"><h4>W 系列：im2col 地址生成变体</h4><p><span class="inline-code">im2col::w</span>、<span class="inline-code">im2col::w::128</span>、<span class="inline-code">im2col_no_offs::w</span> 涉及 wHalo／wOffset 等宽度方向坐标组织；不是另一种卷积算法。</p></div></div>
+  </section>
+  <section class="chapter"><h3><span class="tag">2</span>PTX 指令</h3>
+    <div class="code"><div class="code-title">IM2COL · 形式族示意，不表示可任意交换后缀 <button class="copy">复制</button></div><pre><span class="kw">cp.async.bulk.tensor.3d</span>.im2col.shared::cluster.global
+  .mbarrier::complete_tx::bytes
+  [smem_tile], [tensor_map, {c, w, n}],
+  [mbar], <span class="cm">// 按模式提供 offsets 等操作数</span>
+
+<span class="cm">// 其他形式族：</span>
+<span class="kw">cp.async.bulk.tensor.*d</span>.im2col::w ...
+<span class="kw">cp.async.bulk.tensor.*d</span>.im2col::w::128 ...
+<span class="kw">cp.async.bulk.tensor.*d</span>.im2col_no_offs::w ...</pre></div>
+    <p>im2col 支持 3D～5D，但具体坐标、pixel offset、W 模式操作数与限制必须按所选形式核对。<span class="inline-code">::128</span> 和 <span class="inline-code">no_offs</span> 是更专门的数据组织／坐标变体，不能只改后缀就假定语义等价。</p>
+  </section>
+  <section class="chapter"><h3><span class="tag">3</span>使用场景和原理</h3>
+    <figure class="diagram"><svg viewBox="0 0 880 320" role="img" aria-label="TMA im2col 在搬运时把重叠卷积窗口映射为 GEMM 输入 tile">
+    <defs><marker id="a6" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#6d8c35"/></marker></defs>
+    <text x="25" y="28" class="svg-label" font-weight="700">输入激活（NHWC 直觉图）</text><g fill="#edf2e8" stroke="#c7d1c2"><rect x="25" y="50" width="270" height="220"/><path d="M79 50V270M133 50V270M187 50V270M241 50V270M25 94H295M25 138H295M25 182H295M25 226H295"/></g>
+    <rect x="79" y="94" width="162" height="132" fill="#cce39c88" stroke="#688c32" stroke-width="2"/><text x="160" y="164" text-anchor="middle" class="svg-label">3 × 3 window</text><text x="160" y="293" text-anchor="middle" class="svg-small">相邻输出窗口共享输入像素</text>
+    <path d="M325 156H413" stroke="#6d8c35" stroke-width="2" marker-end="url(#a6)"/><text x="369" y="140" text-anchor="middle" class="svg-small">TMA im2col</text><text x="369" y="178" text-anchor="middle" class="svg-small">不落地展开矩阵</text>
+    <text x="452" y="28" class="svg-label" font-weight="700">SMEM 中的 implicit-GEMM A tile</text><rect x="452" y="50" width="390" height="220" rx="8" fill="#e8f2f3" stroke="#8fb0b8"/>
+    <g stroke="#fff" stroke-width="2"><path d="M517 50V270M582 50V270M647 50V270M712 50V270M777 50V270M452 94H842M452 138H842M452 182H842M452 226H842"/></g>
+    <g class="svg-small" text-anchor="middle"><text x="647" y="79">K = C × R × S（逻辑展开）</text><text x="647" y="159">M = 输出像素位置</text><text x="647" y="245">GMMA 直接消费</text></g>
+    </svg><figcaption>图 6 · “im2col”描述逻辑索引关系，并不意味着在 global memory 中生成完整矩阵。重叠区域的复用发生在地址生成和搬运路径中。</figcaption></figure>
+    <p>CUTLASS 的三类卷积展示了 tiled 与 im2col 如何组合：fprop／dgrad 中 A 操作数使用 im2col、B 使用 tiled；wgrad 中则 A 使用 tiled、B 使用 im2col。硬件模式服务于数据流角色，而不是绑定某一种卷积方向。</p>
+    <div class="note warning"><b>证据边界：</b>本章的实际应用证据聚焦 CUTLASS im2col。interleave 与 W 系列在这里用于澄清硬件语义和设计边界，不声称已在上述生产 mainloop 中验证到对应模式的实际启用。</div>
+  </section>
+  <section class="chapter"><h3><span class="tag">4</span>实际应用 · 开源代码</h3>
+    <div class="source"><div class="source-head"><h4>CUTLASS · fprop／dgrad／wgrad 的 implicit-GEMM mainloop</h4><a href="https://github.com/NVIDIA/cutlass/blob/main/include/cutlass/conv/collective/sm90_implicit_gemm_gmma_ss_warpspecialized.hpp" target="_blank" rel="noopener">打开源码 ↗</a></div>
+      <span class="path">include/cutlass/conv/collective/sm90_implicit_gemm_gmma_ss_warpspecialized.hpp</span>
+      <p>源码明确区分两种 copy builder：<span class="inline-code">make_im2col_tma_copy</span> 与普通 tiled TMA。构造时输入 corner、padding、traversal stride 和 dilation；mainloop 后续按 tile 推进，不必显式生成输入展开矩阵。</p>
+      <div class="source-snippet">// fprop / dgrad: A = im2col, B = tiled
+// wgrad:         A = tiled,  B = im2col</div>
+      <p class="source-foot">这就是 feature 与应用之间的直接联系：TMA 不只是“把卷积数据搬快”，而是承担 implicit-GEMM 数据流的索引变换。</p>
+    </div>
+  </section>
+  <div class="takeaway"><b>实现要点：</b>im2col 的测试必须同时验证逻辑卷积索引和物理 tile 布局。只测单个规则窗口无法覆盖 negative corner、halo、多 dilation、边界 padding 与跨 stage 坐标推进。</div>
+</section>
+
+<section class="feature" id="reduce">
+  <div class="feature-top"><div class="feature-no">07</div><div><h2>TMA store-reduce</h2><p class="feature-sub">写回与元素归约合并 · add／min／max／逻辑运算</p></div></div>
+  <div class="problem"><b>解决什么</b><p>多个 warpgroup 或 kernel 路径产生同一输出的部分结果时，普通流程需要把结果写回，再由另一轮读取、相加、写回。若输出已在 SMEM，直接把“写回 + 与 global 旧值归约”合并，可减少中间流量。</p></div>
+  <section class="chapter"><h3><span class="tag">1</span>功能定义</h3>
+    <p><span class="inline-code">cp.reduce.async.bulk.tensor</span> 从 SMEM 读取一个 tensor tile，并在写向 global tensor 时执行逐元素 reduction。支持 add、min、max、inc、dec、and、or、xor 等操作类别，具体类型与操作组合受 PTX 规则约束。</p>
+    <p>它使用 bulk-group 跟踪完成，不以 mbarrier transaction bytes 作为 load 那样的到达通知。</p>
+  </section>
+  <section class="chapter"><h3><span class="tag">2</span>PTX 指令</h3>
+    <div class="code"><div class="code-title">TENSOR REDUCTION · 以 add 为例 <button class="copy">复制</button></div><pre><span class="kw">cp.reduce.async.bulk.tensor.2d</span>.global.shared::cta.add.bulk_group
+  [<span class="ty">tensor_map</span>, {x, y}], [<span class="ty">smem_partial</span>];
+
+<span class="kw">cp.async.bulk.commit_group</span>;
+<span class="kw">cp.async.bulk.wait_group.read</span> <span class="numlit">0</span>; <span class="cm">// 按源 SMEM 复用需求等待</span></pre></div>
+    <p>其他归约把 <span class="inline-code">add</span> 换成合法操作符。与普通 TMA store 一样，普通 proxy 产生的 SMEM 数据在进入 async proxy 前需要适当 fence。</p>
+  </section>
+  <section class="chapter"><h3><span class="tag">3</span>使用场景和原理</h3>
+    <figure class="diagram"><svg viewBox="0 0 830 270" role="img" aria-label="两个 warpgroup 的部分结果通过 TMA store-add 累加到全局输出">
+    <defs><marker id="a7" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#6d8c35"/></marker></defs>
+    <rect x="30" y="55" width="200" height="65" rx="10" fill="#e8f2f3" stroke="#8fb0b8"/><text x="130" y="82" text-anchor="middle" class="svg-label">WG 0 · o_smem[0]</text><text x="130" y="103" text-anchor="middle" class="svg-small">partial output</text>
+    <rect x="30" y="155" width="200" height="65" rx="10" fill="#e8f2f3" stroke="#8fb0b8"/><text x="130" y="182" text-anchor="middle" class="svg-label">WG 1 · o_smem[1]</text><text x="130" y="203" text-anchor="middle" class="svg-small">partial output</text>
+    <rect x="350" y="85" width="170" height="105" rx="15" fill="#17251d"/><text x="435" y="122" text-anchor="middle" fill="#b6df6f" font-family="Segoe UI" font-size="15" font-weight="700">TMA reduce</text><text x="435" y="151" text-anchor="middle" fill="#c6d1c9" font-family="Segoe UI" font-size="12">global += SMEM</text><text x="435" y="173" text-anchor="middle" fill="#879a8d" font-family="Segoe UI" font-size="10">store_add_async</text>
+    <rect x="645" y="75" width="155" height="130" rx="10" fill="#edf2e3" stroke="#aabb94"/><text x="722" y="113" text-anchor="middle" class="svg-label" font-weight="700">Global O</text><text x="722" y="146" text-anchor="middle" class="svg-mono">O0 + O1</text><text x="722" y="178" text-anchor="middle" class="svg-small">无需先读回 SM</text>
+    <g fill="none" stroke="#6d8c35" stroke-width="2" marker-end="url(#a7)"><path d="M240 88H290V120H335"/><path d="M240 188H290V155H335"/><path d="M530 138H630"/></g>
+    </svg><figcaption>图 7 · Linear attention 中两个 warpgroup 各自形成部分输出；store-add 将每份 SMEM 结果直接累加到同一 global 输出区域。</figcaption></figure>
+    <p>适用关键是：算法本来就允许按该 reduction 运算合并部分结果，并且 global 输出的旧值是运算语义的一部分。若只是覆盖写，普通 TMA store 更直接。</p>
+  </section>
+  <section class="chapter"><h3><span class="tag">4</span>实际应用 · 开源代码</h3>
+    <div class="source"><div class="source-head"><h4>ThunderKittens · Linear attention 部分输出累加</h4><a href="https://github.com/HazyResearch/ThunderKittens/blob/main/kernels/linear_attention/linear_attention.cu" target="_blank" rel="noopener">打开源码 ↗</a></div>
+      <span class="path">kernels/linear_attention/linear_attention.cu</span>
+      <p>两个 warpgroup 分别把部分输出写入 <span class="inline-code">o_smem[warpgroupid]</span>，随后调用 <span class="inline-code">store_add_async</span> 累加到 global 输出，而不是再启动一个独立的输出归约 kernel。</p>
+      <div class="source-snippet">warp::tma::store_add_async(
+  g.o, o_smem[warpgroupid],
+  {batch, head, block, 0}
+);
+store_async_wait();</div>
+      <p class="source-foot">同一 kernel 还用 <span class="inline-code">expect_bytes</span>／<span class="inline-code">load_async</span> 和双缓冲组织输入流水，展示了 reduce 写回与 TMA load 完成机制的分工。</p>
+    </div>
+  </section>
+  <div class="takeaway"><b>实现要点：</b>硬件验证要覆盖不同元素类型、归约操作和并发写同一区域；软件必须证明归约顺序不影响算法要求，尤其浮点 add 的结合与可重复性问题。</div>
+</section>
+
+<section class="feature" id="prefetch">
+  <div class="feature-top"><div class="feature-no">08</div><div><h2>Tensor prefetch 与 cache hint</h2><p class="feature-sub">L2 预热 · eviction policy · 不占用 SMEM stage</p></div></div>
+  <div class="problem"><b>解决什么</b><p>有些数据很快会被正式 load，但首次访问延迟会暴露；另一些数据有明显复用规律，默认 L2 淘汰策略未必合适。并非所有提前搬运都应该立刻占用宝贵的 SMEM。</p></div>
+  <section class="chapter"><h3><span class="tag">1</span>功能定义</h3>
+    <ul><li><b>Tensor prefetch：</b>根据同一 TensorMap／坐标模型，把对应 global 数据预取到 L2；不写 SMEM，也不向 mbarrier 交付 tensor tile。</li><li><b>Cache hint：</b>给 TMA load 附加 L2 cache policy，例如让具有后续复用价值的数据采用 evict-last 策略。</li><li><b>Descriptor prefetch：</b><span class="inline-code">prefetch.tensormap</span> 预热描述符本身，与 tensor 数据 prefetch 是两件事。</li></ul>
+  </section>
+  <section class="chapter"><h3><span class="tag">2</span>PTX 指令</h3>
+    <div class="code"><div class="code-title">L2 PREFETCH / CACHE POLICY · 示意形式 <button class="copy">复制</button></div><pre><span class="cm">// 只预取 tensor 数据到 L2，不写 SMEM</span>
+<span class="kw">cp.async.bulk.prefetch.tensor.2d</span>.L2.global
+  [<span class="ty">tensor_map</span>, {x, y}];
+
+<span class="cm">// 正式 load 可带 L2::cache_hint；policy 由合法策略操作数给出</span>
+<span class="kw">cp.async.bulk.tensor.2d</span>.shared::cluster.global
+  .mbarrier::complete_tx::bytes.L2::cache_hint
+  [smem], [tensor_map, {x,y}], [mbar], <span class="ty">cache_policy</span>;
+
+<span class="cm">// 描述符本身的预取是另一条指令</span>
+<span class="kw">prefetch.tensormap</span> [tensor_map];</pre></div>
+  </section>
+  <section class="chapter"><h3><span class="tag">3</span>使用场景和原理</h3>
+    <figure class="diagram"><svg viewBox="0 0 880 265" role="img" aria-label="Tensor prefetch 只进入 L2，正式 TMA load 再进入 shared memory">
+    <defs><marker id="a8" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#6d8c35"/></marker></defs>
+    <rect x="30" y="75" width="165" height="110" rx="12" fill="#edf2e3" stroke="#aabb94"/><text x="112" y="116" text-anchor="middle" class="svg-label" font-weight="700">Global tensor</text><text x="112" y="143" text-anchor="middle" class="svg-small">future Q tile</text>
+    <rect x="360" y="75" width="165" height="110" rx="12" fill="#f6f1e5" stroke="#d7bd88"/><text x="442" y="116" text-anchor="middle" class="svg-label" font-weight="700">L2 cache</text><text x="442" y="143" text-anchor="middle" class="svg-small">prefetched / retained</text>
+    <rect x="680" y="75" width="165" height="110" rx="12" fill="#e8f2f3" stroke="#8fb0b8"/><text x="762" y="116" text-anchor="middle" class="svg-label" font-weight="700">SMEM stage</text><text x="762" y="143" text-anchor="middle" class="svg-small">official load only</text>
+    <path d="M210 108H340" stroke="#6d8c35" stroke-width="2" marker-end="url(#a8)"/><text x="275" y="93" text-anchor="middle" class="svg-small">prefetch</text><path d="M540 108H660" stroke="#6d8c35" stroke-width="2" marker-end="url(#a8)"/><text x="600" y="93" text-anchor="middle" class="svg-small">TMA load</text>
+    <path d="M112 198V225H762V198" fill="none" stroke="#98a495" stroke-dasharray="5 4"/><text x="437" y="248" text-anchor="middle" class="svg-small">时间提前量决定收益：太近无法隐藏延迟，太远可能被替换或浪费带宽</text>
+    </svg><figcaption>图 8 · Prefetch 与 load 分离：先把未来 tile 拉近到 L2，等 SMEM stage 可用了再执行正式搬运。Cache hint 则调整数据在 L2 中的保留倾向。</figcaption></figure>
+    <div class="two-col"><div class="mini"><h4>Prefetch 是提示，不是流水完成对象</h4><p>正式计算仍要执行正式 load，并等待该 load 的 mbarrier。不能拿 prefetch 当作“数据已经在 SMEM”的证明。</p></div><div class="mini"><h4>Cache hint 不是永远越快</h4><p>EVICT_LAST 适用于有明确复用价值的数据；若把大量流式数据都保留，会挤压其他工作集。</p></div></div>
+  </section>
+  <section class="chapter"><h3><span class="tag">4</span>实际应用 · 开源代码</h3>
+    <div class="source"><div class="source-head"><h4>FlashAttention · Q 预取，K／V eviction hint</h4><a href="https://github.com/Dao-AILab/flash-attention/blob/main/hopper/mainloop_fwd_sm90_tma_gmma_ws.hpp" target="_blank" rel="noopener">打开源码 ↗</a></div>
+      <span class="path">hopper/mainloop_fwd_sm90_tma_gmma_ws.hpp</span>
+      <p>mainloop 中存在对 Q descriptor 的真实 prefetch；K／V 的正式 TMA load 使用 <span class="inline-code">TMA::CacheHintSm90::EVICT_LAST</span>。两种机制服务于不同目的：一个提前拉近未来数据，一个表达复用与保留倾向。</p>
+      <div class="source-snippet">prefetch(params.tma_load_Q, tQgQ);
+// K / V load:
+TMA::CacheHintSm90::EVICT_LAST</div>
+      <p class="source-foot">CUTLASS 也使用 <span class="inline-code">prefetch_tma_descriptors</span> 预热描述符；底层封装可见 <a href="https://github.com/NVIDIA/cutlass/blob/main/include/cute/arch/copy_sm90_desc.hpp" target="_blank" rel="noopener">copy_sm90_desc.hpp</a> 中的 <span class="inline-code">prefetch.tensormap</span>。</p>
+    </div>
+  </section>
+  <div class="takeaway"><b>实现要点：</b>性能验证要同时测量 L2 hit、global 流量、SMEM stage 占用和端到端时延。只看 prefetch 指令数量，无法判断它是否真正隐藏了延迟。</div>
+</section>
+
+<section class="feature" id="tensormap">
+  <div class="feature-top"><div class="feature-no">09</div><div><h2>设备端 TensorMap 更新</h2><p class="feature-sub">tensormap.replace · cp_fenceproxy · acquire fence</p></div></div>
+  <div class="problem"><b>解决什么</b><p>Grouped GEMM 中，同一个 persistent kernel 要连续处理多个 problem；每个 problem 的矩阵地址、形状或步幅可能不同。若每组都回 host 重建 TensorMap，会破坏设备侧调度与流水的连续性。</p></div>
+  <section class="chapter"><h3><span class="tag">1</span>功能定义</h3>
+    <p>设备端可以基于一份 TensorMap 模板，使用 <span class="inline-code">tensormap.replace</span> 替换允许修改的字段，例如 global address、global dim、global stride、box 等。更新后的描述符要经过 copy-fenceproxy 与相应 acquire fence，才能被后续 TMA 操作按预期看到。</p>
+    <p>这不是任意修改 128B 描述符的通用许可：字段、数据类型、对齐、状态和 scope 都必须遵守 PTX 约束。</p>
+  </section>
+  <section class="chapter"><h3><span class="tag">2</span>PTX 指令</h3>
+    <div class="code"><div class="code-title">DEVICE-SIDE UPDATE · 关键步骤示意 <button class="copy">复制</button></div><pre><span class="cm">// 在 SMEM 模板中替换字段；此处只展示 global address</span>
+<span class="kw">tensormap.replace.tile.global_address</span>.shared::cta.b1024.b64
+  [smem_tensormap], <span class="ty">new_global_ptr</span>;
+
+<span class="cm">// release：把 generic proxy 的修改发布给 tensormap proxy</span>
+<span class="kw">tensormap.cp_fenceproxy</span>.global.shared::cta.tensormap::generic.release.gpu
+  [global_tensormap], [smem_tensormap], <span class="numlit">128</span>;
+
+<span class="cm">// 使用前的 acquire（具体位置由软件同步结构决定）</span>
+<span class="kw">fence.proxy.tensormap::generic.acquire.gpu</span> [global_tensormap], <span class="numlit">128</span>;</pre></div>
+    <p>CUTLASS 还把 global dims／strides 的替换封装成独立操作。设备端更新的难点不只在“改字段”，而在所有使用者和代理路径之间的可见性。</p>
+  </section>
+  <section class="chapter"><h3><span class="tag">3</span>使用场景和原理</h3>
+    <figure class="diagram"><svg viewBox="0 0 870 300" role="img" aria-label="Persistent grouped GEMM 在设备上更新 TensorMap 并切换下一组矩阵">
+    <defs><marker id="a9" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#6d8c35"/></marker></defs>
+    <rect x="28" y="58" width="180" height="165" rx="12" fill="#edf2e3" stroke="#aabb94"/><text x="118" y="87" text-anchor="middle" class="svg-label" font-weight="700">SMEM 模板</text><text x="48" y="119" class="svg-mono">global_address</text><text x="48" y="145" class="svg-mono">globalDim</text><text x="48" y="171" class="svg-mono">globalStrides</text><text x="48" y="200" class="svg-small">replace 允许字段</text>
+    <rect x="323" y="58" width="220" height="165" rx="15" fill="#17251d"/><text x="433" y="92" text-anchor="middle" fill="#b6df6f" font-family="Segoe UI" font-size="15" font-weight="700">Proxy publication</text><text x="350" y="127" fill="#c6d1c9" font-family="ui-monospace" font-size="10">cp_fenceproxy · release</text><text x="350" y="153" fill="#c6d1c9" font-family="ui-monospace" font-size="10">acquire · gpu scope</text><text x="350" y="188" fill="#879a8d" font-family="Segoe UI" font-size="10">建立 TMA 可见的描述符</text>
+    <rect x="658" y="35" width="180" height="210" rx="12" fill="#e8f2f3" stroke="#8fb0b8"/><text x="748" y="65" text-anchor="middle" class="svg-label" font-weight="700">Persistent kernel</text><g class="svg-small"><text x="683" y="100">problem 0</text><text x="683" y="139">problem 1</text><text x="683" y="178">problem 2</text><text x="683" y="220">无需回 host 重建</text></g><g fill="#d6e9ae"><rect x="675" y="107" width="140" height="20" rx="5"/><rect x="675" y="146" width="140" height="20" rx="5"/><rect x="675" y="185" width="140" height="20" rx="5"/></g>
+    <g fill="none" stroke="#6d8c35" stroke-width="2" marker-end="url(#a9)"><path d="M218 140H308"/><path d="M553 140H643"/></g>
+    </svg><figcaption>图 9 · 设备端切换 problem 的关键路径：模板修改 → proxy 发布 → 获取可见性 → 后续 TMA 使用。同步缺失会让地址或维度出现“上一组／下一组”混用。</figcaption></figure>
+    <p>Grouped GEMM／MoE 类负载的共同特点是 problem 集合在设备侧连续调度。复用描述符模板并原地换组，避免每组都经历 host 往返，也便于保持 persistent pipeline。</p>
+  </section>
+  <section class="chapter"><h3><span class="tag">4</span>实际应用 · 开源代码</h3>
+    <div class="source"><div class="source-head"><h4>CUTLASS · Grouped GEMM 切换矩阵描述符</h4><a href="https://github.com/NVIDIA/cutlass/blob/main/include/cutlass/gemm/collective/sm90_mma_array_tma_gmma_ss_warpspecialized.hpp" target="_blank" rel="noopener">打开源码 ↗</a></div>
+      <span class="path">include/cutlass/gemm/collective/sm90_mma_array_tma_gmma_ss_warpspecialized.hpp</span>
+      <p>TensorMap 模板先放入 SMEM，切换下一组矩阵时替换 global address；grouped GEMM 还替换 global dims／strides。之后执行 release copy-fence 与 acquire，再让 TMA mainloop 使用。</p>
+      <div class="source-snippet">tensormaps_replace_global_address(...);
+tensormaps_replace_global_dim(...);
+tensormaps_replace_global_stride(...);
+// release copy-fence → acquire</div>
+      <p class="source-foot">对应的底层 PTX 封装位于 <a href="https://github.com/NVIDIA/cutlass/blob/main/include/cute/arch/copy_sm90_desc.hpp" target="_blank" rel="noopener">copy_sm90_desc.hpp</a>，可直接看到 <span class="inline-code">tensormap.replace.tile.global_address</span>、<span class="inline-code">tensormap.cp_fenceproxy</span> 和 acquire fence。</p>
+    </div>
+  </section>
+  <div class="takeaway"><b>实现要点：</b>把 TensorMap 更新当作并发协议，而不是内存赋值。验证必须覆盖多个 problem 连续切换、不同 shape／stride、使用中的描述符生命周期，以及 release／acquire 缺失时的失败注入。</div>
+</section>
+
+<section class="overview" id="references">
+  <div class="section-head"><h2>规范入口与阅读顺序</h2><p>实现时以当前目标工具链对应的 PTX／CUDA 文档为最终依据。</p></div>
+  <div class="two-col">
+    <article class="card"><p class="kicker">Official specification</p><h3>指令与描述符语义</h3><p class="small muted">PTX ISA 给出指令形式、操作数、proxy、完成机制与约束；Driver API 给出 TensorMap 创建字段。本文 PTX 代码均为突出结构的示意形式，省略了部分可选修饰符与完整操作数。</p><p class="small"><a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html" target="_blank" rel="noopener">NVIDIA PTX ISA ↗</a><br><a href="https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TENSOR__MEMORY.html" target="_blank" rel="noopener">CUDA Driver API · Tensor Memory ↗</a></p></article>
+    <article class="card"><p class="kicker">Programming guide</p><h3>异步拷贝与同步背景</h3><p class="small muted">异步拷贝指南适合建立 barrier、异步数据移动与流水线背景。阅读源码时建议顺序：先看 TensorMap 如何构造，再看 copy 封装，最后看 producer／consumer 如何管理 stage。</p><p class="small"><a href="https://docs.nvidia.com/cuda/cuda-programming-guide/04-special-topics/async-copies.html" target="_blank" rel="noopener">CUDA Programming Guide · Asynchronous Copies ↗</a></p></article>
+  </div>
+  <div class="note" style="margin-top:18px"><b>范围说明：</b>本手册刻意不展开编译器实现与 Model／架构支持矩阵。所有开源链接指向实际实现文件；源码后续演进可能改变函数名或代码位置，阅读时应以链接文件的当前内容为准。</div>
+</section>
+</main>
+<footer class="footer"><div class="wrap footer-row"><span>NVIDIA TMA Feature Field Guide · 面向硬件／软件实现者</span><span>TensorMap + Coordinates + Completion</span></div></footer>
+</div>
+<button class="backtop" id="backTop" aria-label="返回顶部">↑</button>
+<script>
+(() => {
+  const menu = document.getElementById('menuToggle');
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('backdrop');
+  const backTop = document.getElementById('backTop');
+  const progress = document.getElementById('progress');
+  const closeMenu = () => { sidebar.classList.remove('open'); backdrop.classList.remove('show'); menu.setAttribute('aria-expanded','false'); };
+  menu.addEventListener('click', () => { const open = !sidebar.classList.contains('open'); sidebar.classList.toggle('open',open); backdrop.classList.toggle('show',open); menu.setAttribute('aria-expanded',String(open)); });
+  backdrop.addEventListener('click', closeMenu);
+  document.querySelectorAll('.sidebar a').forEach(a => a.addEventListener('click',closeMenu));
+  document.getElementById('printBtn').addEventListener('click',() => window.print());
+  backTop.addEventListener('click',() => window.scrollTo({top:0,behavior:'smooth'}));
+  document.addEventListener('keydown',e => { if(e.key === 'Escape') closeMenu(); });
+  const onScroll = () => {
+    const max = document.documentElement.scrollHeight - innerHeight;
+    progress.style.width = (max > 0 ? scrollY / max * 100 : 0) + '%';
+    backTop.classList.toggle('show',scrollY > 650);
+  };
+  addEventListener('scroll',onScroll,{passive:true}); onScroll();
+  const links = [...document.querySelectorAll('.nav a[href^="#"]')];
+  const sections = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  const observer = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting).sort((a,b) => a.boundingClientRect.top-b.boundingClientRect.top)[0];
+    if(!visible) return;
+    links.forEach(a => a.classList.toggle('active',a.getAttribute('href') === '#' + visible.target.id));
+  },{rootMargin:'-12% 0px -68% 0px',threshold:0});
+  sections.forEach(s => observer.observe(s));
+  document.querySelectorAll('.copy').forEach(btn => btn.addEventListener('click',async () => {
+    const text = btn.closest('.code').querySelector('pre').innerText;
+    try { await navigator.clipboard.writeText(text); const old=btn.textContent; btn.textContent='已复制'; setTimeout(()=>btn.textContent=old,1300); }
+    catch { btn.textContent='请手动选择'; setTimeout(()=>btn.textContent='复制',1600); }
+  }));
+})();
+</script>
+</body>
+</html>
