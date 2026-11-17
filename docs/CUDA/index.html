@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="CUDA 研究报告目录，包含 NVIDIA TMA 逐 Mode 技术手册。">
+<title>CUDA · 研究报告</title>
+<link rel="icon" href="data:,">
+<style>
+*{box-sizing:border-box}[hidden]{display:none!important}body{max-width:900px;margin:64px auto;padding:0 24px;font:16px/1.8 system-ui,"Microsoft YaHei",sans-serif;color:#172d40;background:#f3f6f9}nav{font-size:13px}h1{margin:22px 0 8px;font-size:40px}a{color:#1467aa;text-underline-offset:3px}p{color:#52657a}.search{display:block;margin:26px 0 8px;padding:16px 18px;background:#fff;border:1px solid:#cfdae5;border-radius:14px}.search span{display:block;margin-bottom:6px;font-size:12px;font-weight:700}.search input{width:100%;padding:12px 14px;border:1px solid #bdccda;border-radius:9px;background:#f9fbfd;font:16px system-ui,"Microsoft YaHei",sans-serif}.search input:focus{outline:3px solid #b9d9ef;border-color:#367eae}#resultCount{font-size:13px}.item{margin:16px 0;padding:23px;background:#fff;border:1px solid:#dce5ee;border-radius:14px}.item h2{margin:0;font-size:21px}.item .path{color:#75899a;font:11px ui-monospace,monospace}#empty{padding:22px;text-align:center;background:#fff;border:1px dashed #bdccda;border-radius:14px}footer{margin-top:32px;font-size:12px;color:#75899a}@media(max-width:560px){body{margin:36px auto;padding:0 16px}}
+</style>
+</head>
+<body>
+<nav><a href="../">← AI Research</a> · <a href="https://github.com/matlinsas/AI_Research_AI/tree/main/CUDA">GitHub 源文件</a></nav>
+<h1>CUDA</h1>
+<p>NVIDIA CUDA、PTX 与数据搬运研究。</p>
+<label class="search" for="cudaSearch"><span>检索 CUDA 子条目</span><input id="cudaSearch" type="search" placeholder="例如：TMA、Swizzle、TensorMap" autocomplete="off"></label>
+<p id="resultCount" aria-live="polite"></p>
+<main>
+  <article class="item" data-keywords="cuda nvidia ptx tma tensor memory access tile swizzle interleave multicast im2col reduce prefetch tensormap 张量 显存 搬运">
+    <p class="path">CUDA / TMA-FEATURE-GUIDE</p>
+    <h2><a href="./tma-feature-guide/">NVIDIA TMA 逐 Mode 技术手册</a></h2>
+    <p>面向 TMA 硬件与软件实现者，逐项解释 1D–5D、Swizzle、Multicast、im2col、Reduce、Prefetch 和 TensorMap 更新等模式解决的应用问题。</p>
+  </article>
+</main>
+<p id="empty" hidden>没有匹配的 CUDA 子条目。</p>
+<footer>2026-11-17 · 子条目持续整理。</footer>
+<script>
+(() => {
+  const input = document.getElementById('cudaSearch');
+  const items = [...document.querySelectorAll('.item')];
+  const count = document.getElementById('resultCount');
+  const empty = document.getElementById('empty');
+  const filter = () => {
+    const terms = input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    let visible = 0;
+    for (const item of items) {
+      const haystack = `${item.dataset.keywords} ${item.textContent}`.toLowerCase();
+      const match = terms.every(term => haystack.includes(term));
+      item.hidden = !match;
+      if (match) visible++;
+    }
+    count.textContent = `共 ${visible} 个匹配子条目`;
+    empty.hidden = visible !== 0;
+  };
+  input.addEventListener('input', filter);
+  filter();
+})();
+</script>
+</body>
+</html>

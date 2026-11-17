@@ -1,4 +1,82 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI Research · 报告</title>
-<style>body{max-width:860px;margin:72px auto;padding:0 24px;font:17px/1.8 system-ui,"Microsoft YaHei",sans-serif;color:#172d40;background:#f3f6f9}h1{font-size:40px}article{padding:24px;background:white;border:1px solid #dce5ee;border-radius:14px}a{color:#1467aa}p{color:#52657a}</style></head>
-<body><h1>AI Research</h1><p>HTML 报告与可视化页面。</p><article style="margin-bottom:20px"><h2><a href="./AMD/">AMD CDNA 架构研究</a></h2><p>2026-11-02 · CDNA 3→4、CDNA 4→5 Feature / ISA 变化，以及 CDNA 1–5 每 CU / WGP 吞吐、LDS 与 VGPR 对照。</p></article><article style="margin-bottom:20px"><h2><a href="./nvlink-nccl-technical-summary.html">NVLink 与 LLM 推理并行</a></h2><p>2026-10-29 · NVL72、NCCL、跨 OS 同步、Scale-out、Attention TP 与 MLA。18 章、17 张矢量图、3 个交互演示。</p></article><article><h2><a href="./test.html">GitHub Pages 测试页</a></h2><p>2026-10-21 · 中文显示、样式与 JavaScript 交互测试。</p></article></body></html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="AI Research HTML 报告目录，可检索 CUDA、TMA、AMD CDNA、NVLink 等研究页面。">
+<title>AI Research · 报告检索</title>
+<link rel="icon" href="data:,">
+<style>
+*{box-sizing:border-box}[hidden]{display:none!important}body{max-width:900px;margin:64px auto;padding:0 24px;font:16px/1.8 system-ui,"Microsoft YaHei",sans-serif;color:#172d40;background:#f3f6f9}h1{margin:0;font-size:42px;line-height:1.2}h2{margin:32px 0 12px;font-size:20px}h3{margin:0 0 8px;font-size:19px;line-height:1.4}a{color:#1467aa;text-underline-offset:3px}p{color:#52657a}.eyebrow{margin:0 0 8px;color:#687e91;font-size:12px;font-weight:700;letter-spacing:.16em}.intro{margin:12px 0 26px}.search{display:block;padding:16px 18px;background:#fff;border:1px solid:#cfdae5;border-radius:14px}.search span{display:block;margin-bottom:6px;color:#52657a;font-size:12px;font-weight:700}.search input{width:100%;padding:12px 14px;border:1px solid:#bdccda;border-radius:9px;background:#f9fbfd;color:#172d40;font:16px system-ui,"Microsoft YaHei",sans-serif}.search input:focus{outline:3px solid #b9d9ef;border-color:#367eae}#resultCount{min-height:26px;margin:8px 4px 0;font-size:13px}.category{margin-bottom:4px}.category a{text-decoration:none}.item{margin:0 0 14px;padding:21px 23px;background:#fff;border:1px solid #dce5ee;border-radius:14px}.item p{margin:6px 0}.item .path{margin:0 0 5px;color:#75899a;font:11px/1.5 ui-monospace,monospace;letter-spacing:.04em}#empty{padding:24px;text-align:center;background:#fff;border:1px dashed #bdccda;border-radius:14px}footer{margin-top:36px;color:#75899a;font-size:12px}@media(max-width:560px){body{margin:36px auto;padding:0 16px}h1{font-size:34px}.item{padding:18px}}
+</style>
+</head>
+<body>
+<header>
+  <p class="eyebrow">RESEARCH INDEX</p>
+  <h1>AI Research</h1>
+  <p class="intro">HTML 报告与可视化页面。可按标题、目录或技术关键词检索。</p>
+  <label class="search" for="reportSearch"><span>检索报告</span><input id="reportSearch" type="search" placeholder="例如：CUDA、TMA、Swizzle、CDNA、NVLink" autocomplete="off" autofocus></label>
+  <p id="resultCount" aria-live="polite"></p>
+</header>
+<main id="catalog">
+  <section class="group">
+    <h2 class="category"><a href="./AMD/">AMD</a></h2>
+    <article class="item" data-keywords="amd cdna isa gpu lds vgpr wgp 架构 指令">
+      <p class="path">AMD / CDNA ARCHITECTURE</p>
+      <h3><a href="./AMD/">AMD CDNA 架构研究</a></h3>
+      <p>2026-11-02 · CDNA 3→4、CDNA 4→5 Feature / ISA 变化，以及 CDNA 1–5 每 CU / WGP 吞吐、LDS 与 VGPR 对照。</p>
+    </article>
+  </section>
+  <section class="group">
+    <h2 class="category"><a href="./CUDA/">CUDA</a></h2>
+    <article class="item" data-keywords="cuda nvidia ptx tma tensor memory access tile swizzle interleave multicast im2col reduce prefetch tensormap 张量 显存 搬运">
+      <p class="path">CUDA / TMA FEATURE GUIDE</p>
+      <h3><a href="./CUDA/tma-feature-guide/">NVIDIA TMA 逐 Mode 技术手册</a></h3>
+      <p>2026-11-17 · 1D–5D tile、OOB、Swizzle、Multicast、im2col、Reduce、Prefetch 与 TensorMap.replace；逐 mode 分析使用场景、约束和开源案例。</p>
+    </article>
+  </section>
+  <section class="group">
+    <h2 class="category">其他研究</h2>
+    <article class="item" data-keywords="nvlink nccl llm inference nvl72 scale-out attention tp mla 推理 并行">
+      <p class="path">INTERCONNECT / LLM INFERENCE</p>
+      <h3><a href="./nvlink-nccl-technical-summary.html">NVLink 与 LLM 推理并行</a></h3>
+      <p>2026-10-29 · NVL72、NCCL、跨 OS 同步、Scale-out、Attention TP 与 MLA。18 章、17 张矢量图、3 个交互演示。</p>
+    </article>
+    <article class="item" data-keywords="github pages test 测试 中文 javascript">
+      <p class="path">SITE / TEST</p>
+      <h3><a href="./test.html">GitHub Pages 测试页</a></h3>
+      <p>2026-10-21 · 中文显示、样式与 JavaScript 交互测试。</p>
+    </article>
+  </section>
+</main>
+<p id="empty" hidden>没有匹配的报告，请尝试其他关键词。</p>
+<footer>目录与检索在浏览器本地运行，无需外部脚本。</footer>
+<script>
+(() => {
+  const input = document.getElementById('reportSearch');
+  const items = [...document.querySelectorAll('.item')];
+  const groups = [...document.querySelectorAll('.group')];
+  const count = document.getElementById('resultCount');
+  const empty = document.getElementById('empty');
+  const filter = () => {
+    const query = input.value.trim().toLowerCase();
+    const terms = query.split(/\s+/).filter(Boolean);
+    let visible = 0;
+    for (const item of items) {
+      const haystack = `${item.dataset.keywords} ${item.textContent}`.toLowerCase();
+      const match = terms.every(term => haystack.includes(term));
+      item.hidden = !match;
+      if (match) visible++;
+    }
+    for (const group of groups) {
+      group.hidden = ![...group.querySelectorAll('.item')].some(item => !item.hidden);
+    }
+    count.textContent = query ? `找到 ${visible} 个匹配报告` : `共 ${items.length} 个报告`;
+    empty.hidden = visible !== 0;
+  };
+  input.addEventListener('input', filter);
+  filter();
+})();
+</script>
+</body>
+</html>
