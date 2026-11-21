@@ -373,16 +373,16 @@ $$
   <li>K 侧：<strong>直接用缓存的 $\mathbf{c}_j^{KV}$ 本身</strong>，无需上投影。</li>
 </ul>
 <h4>3.3.1 吸收到哪一侧？结合律的账本</h4>
-<p>推理时要计算当前查询与全部历史键的点积 $q_i \cdot k_1, q_i \cdot k_2, \dots, q_i \cdot k_n$，其中每一项：</p>
+<p>推理时要计算当前查询与全部历史键的点积 $q_i \cdot k_1, q_i \cdot k_2, \dots, q_i \cdot k_n$。注意 $\mathbf{q}_{t,i}$ 也不是现成的——它本身要经 $W_i^{UQ}$ 上投影得到，所以把 Q、K 两侧都按 3.2 节展开，其中每一项：</p>
 $$
-q_i^{\top} k_j = q_i^{\top} \left(W^{UK} \mathbf{c}_j^{KV}\right) = \left(q_i^{\top} W^{UK}\right) \mathbf{c}_j^{KV}
+q_i^{\top} k_j = \left(W_i^{UQ}\,\mathbf{c}_t^{Q}\right)^{\top} \left(W_i^{UK}\,\mathbf{c}_j^{KV}\right) = \left(\mathbf{c}_t^{Q}\right)^{\top} \underbrace{\left(W_i^{UQ}\right)^{\top} W_i^{UK}}_{\text{离线合并，} d_c' \times d_c} \; \mathbf{c}_j^{KV}
 $$
-<p>矩阵乘法满足结合律，但两种结合顺序的代价天差地别（代入 DeepSeek-V2 维度：$q_i^{\top}$ 为 $1 \times 16384$，$W^{UK}$ 为 $16384 \times 512$，$\mathbf{c}_j^{KV}$ 为 $512 \times 1$）：</p>
+<p>矩阵乘法满足结合律，但两种结合顺序的代价天差地别（代入 DeepSeek-V2 维度：全部头合起来看，$W^{UK}$ 是 $16384 \times 512$ 的大矩阵；而合并矩阵 $\left(W^{UQ}\right)^{\top}W^{UK}$ 每个头只有 $d_c' \times d_c$；$\mathbf{c}_j^{KV}$ 为 $512 \times 1$）：</p>
 <table>
   <tr><th></th><th>方案 A：合并进 Key 侧</th><th>方案 B：合并进 Query 侧（MLA 的选择）</th></tr>
-  <tr><td>步骤 ①（大矩阵乘）</td><td><strong>每个历史 token</strong> 都要算 $W^{UK}\mathbf{c}_j^{KV}$（$16384 \times 512$ 矩阵乘向量）</td><td class="hl">整个解码步只算 1 次 $q_i^{\top}W^{UK}$（$1 \times 16384$ 乘 $16384 \times 512$）</td></tr>
-  <tr><td>步骤 ②（点积）</td><td>每个历史 token 再算 $q_i^{\top}(\cdots)$（$16384$ 维点积）</td><td>每个历史 token 只算 $(\cdots)\,\mathbf{c}_j^{KV}$（$512$ 维点积）</td></tr>
-  <tr><td>$n = 100$ 个历史 token</td><td>昂贵的大矩阵乘 ① 重复 100 次</td><td class="hl">① 只做 1 次，约省 100 倍计算量</td></tr>
+  <tr><td>步骤 ①（矩阵乘）</td><td><strong>每个历史 token</strong> 都要算 $W^{UK}\mathbf{c}_j^{KV}$（$16384 \times 512$ 大矩阵乘向量）</td><td class="hl">$\left(W^{UQ}\right)^{\top}W^{UK}$ <strong>离线预先合并</strong>（不计入解码）；每个解码步只对 $\mathbf{c}_t^{Q}$ 做 1 次 $d_c' \times d_c$ 小矩阵乘</td></tr>
+  <tr><td>步骤 ②（点积）</td><td>每个历史 token 再算 $q_i^{\top}(\cdots)$（$16384$ 维点积）</td><td>每个历史 token 只算 $\tilde{\mathbf{q}}_i^{\top}\,\mathbf{c}_j^{KV}$（$512$ 维点积）</td></tr>
+  <tr><td>$n = 100$ 个历史 token</td><td>昂贵的大矩阵乘 ① 重复 100 次</td><td class="hl">大矩阵乘 0 次（已被离线吸收）＋ 1 次小矩阵乘，比方案 A 省约 100 倍以上</td></tr>
 </table>
 <figure>
 <div class="svg-box">
@@ -413,13 +413,13 @@ $$
   <foreignObject x="700" y="75" width="150" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:11.5px">与 \(q_i\) 点积（16384 维）</div></foreignObject>
 
   <!-- 方案 B -->
-  <text x="10" y="206" font-size="14" font-weight="700" fill="#047857">方案 B：合并进 Query 侧 —— 大矩阵乘只做 1 次（MLA 的选择 ✓）</text>
+  <text x="10" y="206" font-size="14" font-weight="700" fill="#047857">方案 B：合并进 Query 侧 —— 大矩阵乘被离线吸收（MLA 的选择 ✓）</text>
   <rect x="140" y="225" width="110" height="36" rx="8" fill="#dbeafe" stroke="#2563eb"/>
-  <foreignObject x="140" y="225" width="110" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:12px">\(q_i^{\top}\)（16384 维）</div></foreignObject>
+  <foreignObject x="140" y="225" width="110" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:12px">\(\mathbf{c}_t^{Q}\)（\(d_c'\) 维）</div></foreignObject>
   <line x1="250" y1="243" x2="292" y2="243" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-m)"/>
   <rect x="296" y="219" width="210" height="56" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
-  <foreignObject x="296" y="223" width="210" height="22"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:13px;font-weight:700">\(q_i^{\top}\,W^{UK}\)</div></foreignObject>
-  <foreignObject x="296" y="245" width="210" height="20"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:11px">\(16384 \times 512\) 大矩阵乘</div></foreignObject>
+  <foreignObject x="296" y="223" width="210" height="22"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:13px;font-weight:700">\(\left(W^{UQ}\right)^{\top}W^{UK}\)</div></foreignObject>
+  <foreignObject x="296" y="245" width="210" height="20"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:11px">离线合并为 \(d_c' \times d_c\) 小矩阵</div></foreignObject>
   <rect x="470" y="188" width="80" height="24" rx="12" fill="#dcfce7" stroke="#16a34a"/>
   <foreignObject x="470" y="188" width="80" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#047857;font-size:12px;font-weight:700">× 1 次</div></foreignObject>
   <line x1="506" y1="247" x2="546" y2="247" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-m)"/>
@@ -430,12 +430,12 @@ $$
   <foreignObject x="700" y="225" width="150" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d;font-size:11.5px">与每个 \(\mathbf{c}_j^{KV}\) 点积（512 维 × n）</div></foreignObject>
 
   <!-- 底部结论 -->
-  <text x="430" y="312" font-size="13" font-weight="700" text-anchor="middle" fill="#047857">n = 100 时：方案 A 的大矩阵乘 = 100 次；方案 B = 1 次大矩阵乘 + 100 次小点积 → 约省 100 倍</text>
+  <text x="430" y="312" font-size="13" font-weight="700" text-anchor="middle" fill="#047857">n = 100 时：方案 A 的 16384×512 大矩阵乘重复 100 次；方案 B 离线吸收后只剩 1 次小矩阵乘 + 100 次 512 维点积</text>
 </svg>
 </div>
-<figcaption>图 3-3 ｜ 矩阵吸收的两种结合顺序（自绘）。方案 A 把 $W^{UK}$ 合并进 Key 侧，$16384 \times 512$ 的大矩阵乘随历史 token 数 $n$ 重复（堆叠效果表示重复 $n$ 次）；方案 B 合并进 Query 侧，大矩阵乘只做 1 次，历史 token 只剩 512 维小点积——$n=100$ 时约省 100 倍。</figcaption>
+<figcaption>图 3-3 ｜ 矩阵吸收的两种结合顺序（自绘）。方案 A 把 $W^{UK}$ 留在 Key 侧，$16384 \times 512$ 的大矩阵乘随历史 token 数 $n$ 重复（堆叠效果表示重复 $n$ 次）；方案 B 把 $\left(W^{UQ}\right)^{\top}W^{UK}$ 合并进 Query 侧并<strong>离线预计算</strong>，解码时只剩 1 次 $d_c' \times d_c$ 小矩阵乘和 $n$ 次 512 维小点积。</figcaption>
 </figure>
-<p>所以 MLA 选择方案 B：昂贵的合并矩阵乘只对当前 Query 做一次，历史 token 侧永远只接触 512 维的压缩向量。<strong>低秩压缩负责省显存，选对边的矩阵吸收负责省算力</strong>——两者叠加，才同时解决了 1.1 节的两个瓶颈。</p>
+<p>所以 MLA 选择方案 B：$\left(W^{UQ}\right)^{\top}W^{UK}$ 离线合并成一个小矩阵，解码时只对当前 token 的 $\mathbf{c}_t^{Q}$ 乘一次，历史 token 侧永远只接触 512 维的压缩向量。<strong>低秩压缩负责省显存，选对边的矩阵吸收负责省算力</strong>——两者叠加，才同时解决了 1.1 节的两个瓶颈。</p>
 
 <h4>3.3.2 Value 吸收：输出侧的同样把戏</h4>
 <p>softmax 之后的加权求和，可以把 $W^{UV}$ 同样提到求和号外面：</p>
