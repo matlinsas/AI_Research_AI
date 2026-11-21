@@ -408,54 +408,74 @@ $$
 </table></div></section>
 <section class="slide figure-slide"><div class="crumb">三 · MLA 的核心原理 / 3.3 矩阵吸收（Matrix Absorption）—— 最精妙的一步</div><h3 class="s-title">3.3 矩阵吸收（Matrix Absorption）—— 最精妙的一步</h3><div class="s-body"><figure>
 <div class="svg-box">
-<svg viewBox="0 0 860 330" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="PingFang SC, Microsoft YaHei, sans-serif">
+<svg viewBox="0 0 980 480" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="PingFang SC, Microsoft YaHei, sans-serif">
   <defs>
     <marker id="arr-m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 1 L 9 5 L 0 9 z" fill="#334155"/>
     </marker>
+    <marker id="arr-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#dc2626"/>
+    </marker>
   </defs>
-  
-  <text x="10" y="56" font-size="14" font-weight="700" fill="#b91c1c">方案 A：合并进 Key 侧 —— 大矩阵乘随 n 重复</text>
-  <rect x="140" y="75" width="110" height="36" rx="8" fill="#dcfce7" stroke="#16a34a"/>
-  <foreignObject x="140" y="75" width="110" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d;font-size:12px">\(\mathbf{c}_j^{KV}\)（512 维）</div></foreignObject>
-  <line x1="250" y1="93" x2="292" y2="93" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-m)"/>
-  
-  <rect x="308" y="57" width="210" height="56" rx="8" fill="#ede9fe" stroke="#7c3aed" opacity="0.35"/>
-  <rect x="302" y="63" width="210" height="56" rx="8" fill="#ede9fe" stroke="#7c3aed" opacity="0.6"/>
-  <rect x="296" y="69" width="210" height="56" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
-  <foreignObject x="296" y="73" width="210" height="22"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:13px;font-weight:700">\(W^{UK}\,\mathbf{c}_j^{KV}\)</div></foreignObject>
-  <foreignObject x="296" y="95" width="210" height="20"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:11px">\(16384 \times 512\) 大矩阵乘</div></foreignObject>
-  <rect x="470" y="38" width="80" height="24" rx="12" fill="#fee2e2" stroke="#dc2626"/>
-  <foreignObject x="470" y="38" width="80" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#b91c1c;font-size:12px;font-weight:700">× n 次</div></foreignObject>
-  <line x1="512" y1="97" x2="546" y2="97" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-m)"/>
-  <rect x="548" y="75" width="120" height="36" rx="8" fill="#dbeafe" stroke="#2563eb"/>
-  <foreignObject x="548" y="75" width="120" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:12px">\(\mathbf{k}_j\)（16384 维）</div></foreignObject>
-  <line x1="668" y1="93" x2="698" y2="93" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-m)"/>
-  <rect x="700" y="75" width="150" height="36" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
-  <foreignObject x="700" y="75" width="150" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:11.5px">与 \(q_i\) 点积（16384 维）</div></foreignObject>
 
   
-  <text x="10" y="206" font-size="14" font-weight="700" fill="#047857">方案 B：合并进 Query 侧 —— 大矩阵乘被离线吸收（MLA 的选择 ✓）</text>
-  <rect x="140" y="225" width="110" height="36" rx="8" fill="#dbeafe" stroke="#2563eb"/>
-  <foreignObject x="140" y="225" width="110" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:12px">\(\mathbf{c}_t^{Q}\)（\(d_c'\) 维）</div></foreignObject>
-  <line x1="250" y1="243" x2="292" y2="243" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-m)"/>
-  <rect x="296" y="219" width="210" height="56" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
-  <foreignObject x="296" y="223" width="210" height="22"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:13px;font-weight:700">\(\left(W^{UQ}\right)^{\top}W^{UK}\)</div></foreignObject>
-  <foreignObject x="296" y="245" width="210" height="20"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:11px">离线合并为 \(d_c' \times d_c\) 小矩阵</div></foreignObject>
-  <rect x="470" y="188" width="80" height="24" rx="12" fill="#dcfce7" stroke="#16a34a"/>
-  <foreignObject x="470" y="188" width="80" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#047857;font-size:12px;font-weight:700">× 1 次</div></foreignObject>
-  <line x1="506" y1="247" x2="546" y2="247" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-m)"/>
-  <rect x="548" y="225" width="120" height="36" rx="8" fill="#dcfce7" stroke="#16a34a"/>
-  <foreignObject x="548" y="225" width="120" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d;font-size:12px">\(\tilde{q}\)（512 维）</div></foreignObject>
-  <line x1="668" y1="243" x2="698" y2="243" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-m)"/>
-  <rect x="700" y="225" width="150" height="36" rx="8" fill="#dcfce7" stroke="#16a34a"/>
-  <foreignObject x="700" y="225" width="150" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d;font-size:11.5px">与每个 \(\mathbf{c}_j^{KV}\) 点积（512 维 × n）</div></foreignObject>
+<foreignObject x="8" y="10" width="250" height="26"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#0f172a;font-size:12.5px">推理时要算 \(q_i\cdot k_1,\ q_i\cdot k_2,\ \dots,\ q_i\cdot k_n\)</div></foreignObject>
+  <text x="10" y="50" font-size="12" fill="#64748b">其中每一项（Q、K 两侧都展开）：</text>
+<foreignObject x="8" y="56" width="250" height="30"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#0f172a;font-size:11.5px">\(q_i^{\top}k_j = \left(W_i^{UQ}\,\mathbf{c}_t^{Q}\right)^{\top} \left(W_i^{UK}\,\mathbf{c}_j^{KV}\right)\)</div></foreignObject>
+<foreignObject x="8" y="88" width="250" height="48"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#0f172a;font-size:11.5px">\(= \left(\mathbf{c}_t^{Q}\right)^{\top} \underbrace{\left(W_i^{UQ}\right)^{\top} W_i^{UK}}_{\text{离线合并 } d_c&#x27;\times d_c}\ \mathbf{c}_j^{KV}\)</div></foreignObject>
+<foreignObject x="8" y="150" width="240" height="44"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#b91c1c;font-size:12.5px;font-weight:700;line-height:1.4">Decode：1 个 query<br/>× n 个历史 KV</div></foreignObject>
+  <line x1="235" y1="172" x2="305" y2="130" stroke="#dc2626" stroke-width="2" marker-end="url(#arr-r)"/>
 
   
-  <text x="430" y="312" font-size="13" font-weight="700" text-anchor="middle" fill="#047857">n = 100 时：方案 A 的 16384×512 大矩阵乘重复 100 次；方案 B 离线吸收后只剩 1 次小矩阵乘 + 100 次 512 维点积</text>
+<foreignObject x="290" y="10" width="345" height="28"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#b91c1c;font-size:13px;font-weight:700">方案 A：\(W^{UK}\) 留在 Key 侧 —— 大矩阵乘随 n 重复</div></foreignObject>
+  <rect x="300" y="120" width="150" height="16" rx="3" fill="#dbeafe" stroke="#2563eb"/>
+<foreignObject x="300" y="140" width="150" height="18"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:10.5px">\(q^{\top}\)（1×16384）</div></foreignObject>
+  <text x="456" y="134" font-size="14" fill="#334155">×</text>
+  <rect x="472" y="60" width="86" height="150" rx="6" fill="#fee2e2" stroke="#dc2626"/>
+<foreignObject x="472" y="110" width="86" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#b91c1c;font-size:13px;font-weight:700">\(W^{UK}\)</div></foreignObject>
+<foreignObject x="472" y="212" width="86" height="18"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#b91c1c;font-size:10px">16384×512</div></foreignObject>
+  <rect x="492" y="34" width="62" height="22" rx="11" fill="#fee2e2" stroke="#dc2626"/>
+<foreignObject x="492" y="34" width="62" height="22"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#b91c1c;font-size:11px;font-weight:700">× n 次</div></foreignObject>
+  <text x="564" y="134" font-size="14" fill="#334155">×</text>
+  <rect x="580" y="105" width="18" height="70" rx="3" fill="#dcfce7" stroke="#16a34a"/>
+<foreignObject x="558" y="180" width="62" height="18"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d;font-size:10.5px">\(\mathbf{c}_j^{KV}\)</div></foreignObject>
+<foreignObject x="558" y="196" width="62" height="16"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d;font-size:10px">512×1</div></foreignObject>
+<foreignObject x="290" y="236" width="345" height="16"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#94a3b8;font-size:10px">（维度按全部 128 头合并展示，逐头为 128×512）</div></foreignObject>
+<foreignObject x="290" y="258" width="345" height="22"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#334155;font-size:12px;justify-content:flex-start">① 每个历史 token 算 \(W^{UK}\mathbf{c}_j^{KV}\)（16384×512 大矩阵乘）</div></foreignObject>
+<foreignObject x="290" y="284" width="345" height="22"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#334155;font-size:12px;justify-content:flex-start">② 再左乘 \(q^{\top}\)（16384 维点积）</div></foreignObject>
+<foreignObject x="290" y="316" width="345" height="22"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#b91c1c;font-size:12.5px;font-weight:700;justify-content:flex-start">n = 100：步骤①的大矩阵乘重复 100 次</div></foreignObject>
+
+  
+  <line x1="644" y1="10" x2="644" y2="350" stroke="#e5e7eb" stroke-dasharray="4 4"/>
+
+  
+<foreignObject x="660" y="10" width="315" height="28"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#047857;font-size:13px;font-weight:700">方案 B：\((W^{UQ})^{\top}W^{UK}\) 合并进 Query 侧 ✓</div></foreignObject>
+  <rect x="664" y="120" width="72" height="16" rx="3" fill="#dbeafe" stroke="#2563eb"/>
+<foreignObject x="652" y="140" width="96" height="18"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:10.5px">\(\left(\mathbf{c}_t^{Q}\right)^{\top}\)</div></foreignObject>
+<foreignObject x="652" y="156" width="96" height="16"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#1e3a8a;font-size:10px">1×1536（d_c&#x27;）</div></foreignObject>
+  <text x="742" y="134" font-size="14" fill="#334155">×</text>
+  <rect x="756" y="100" width="86" height="72" rx="6" fill="#ede9fe" stroke="#7c3aed"/>
+<foreignObject x="756" y="104" width="86" height="36"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:10.5px;font-weight:700;line-height:1.35">\((W^{UQ})^{\top}\)<br/>\(W^{UK}\)</div></foreignObject>
+<foreignObject x="756" y="146" width="86" height="16"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#4c1d95;font-size:10px">1536×512</div></foreignObject>
+  <rect x="740" y="72" width="116" height="22" rx="11" fill="#dcfce7" stroke="#16a34a"/>
+<foreignObject x="740" y="72" width="116" height="22"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#047857;font-size:11px;font-weight:700">离线合并 ×1 次</div></foreignObject>
+  <text x="848" y="134" font-size="14" fill="#334155">×</text>
+  <rect x="864" y="105" width="18" height="70" rx="3" fill="#dcfce7" stroke="#16a34a"/>
+<foreignObject x="842" y="180" width="62" height="18"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d;font-size:10.5px">\(\mathbf{c}_j^{KV}\)</div></foreignObject>
+<foreignObject x="842" y="196" width="62" height="16"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#14532d;font-size:10px">512×1</div></foreignObject>
+<foreignObject x="660" y="236" width="315" height="16"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#94a3b8;font-size:10px">（离线合并矩阵每头 d_c&#x27;×d_c = 1536×512）</div></foreignObject>
+<foreignObject x="660" y="258" width="315" height="22"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#334155;font-size:12px;justify-content:flex-start">① 离线合并 \((W^{UQ})^{\top}W^{UK}\)（解码免费）</div></foreignObject>
+<foreignObject x="660" y="284" width="315" height="22"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#334155;font-size:12px;justify-content:flex-start">② 每步 1 次小矩阵乘得 \(\tilde{\mathbf{q}}_i\)</div></foreignObject>
+<foreignObject x="660" y="310" width="315" height="22"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#334155;font-size:12px;justify-content:flex-start">③ 再与每个 \(\mathbf{c}_j^{KV}\) 点积（512 维 × n）</div></foreignObject>
+<foreignObject x="660" y="342" width="315" height="22"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#047857;font-size:12.5px;font-weight:700;justify-content:flex-start">n = 100：大矩阵乘 0 次（被离线吸收）</div></foreignObject>
+
+  
+  <line x1="10" y1="392" x2="970" y2="392" stroke="#e5e7eb"/>
+<foreignObject x="90" y="404" width="800" height="26"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#0f172a;font-size:13px;font-weight:700">在 100 个历史 token 的算例中：Key 侧大矩阵上投影从 100 次降为 0 次（被离线吸收）</div></foreignObject>
+<foreignObject x="90" y="434" width="800" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#0d9488;font-size:12px;font-weight:700">低秩联合压缩极大减小 KV Cache 显存占用，结合矩阵吸收显著降低推理计算量</div></foreignObject>
 </svg>
 </div>
-<figcaption>图 3-3 ｜ 矩阵吸收的两种结合顺序（自绘）。方案 A 把 $W^{UK}$ 留在 Key 侧，$16384 \times 512$ 的大矩阵乘随历史 token 数 $n$ 重复（堆叠效果表示重复 $n$ 次）；方案 B 把 $\left(W^{UQ}\right)^{\top}W^{UK}$ 合并进 Query 侧并<strong>离线预计算</strong>，解码时只剩 1 次 $d_c' \times d_c$ 小矩阵乘和 $n$ 次 512 维小点积。</figcaption>
+<figcaption>图 3-3 ｜ 矩阵吸收的两种结合顺序（自绘）。左侧为完整展开式——$\mathbf{q}_i$ 本身也来自 $W_i^{UQ}\mathbf{c}_t^{Q}$，不是现成向量。方案 A 把 $W^{UK}$ 留在 Key 侧，$16384 \times 512$ 大矩阵乘随历史 token 数 $n$ 重复；方案 B 把 $\left(W^{UQ}\right)^{\top}W^{UK}$ 离线合并为 $d_c' \times d_c$ 小矩阵，解码时只剩 1 次小矩阵乘与 $n$ 次 512 维点积——Key 侧大矩阵上投影从 100 次降为 0 次。</figcaption>
 </figure></div></section>
 <section class="slide"><div class="crumb">三 · MLA 的核心原理 / 3.3 矩阵吸收（Matrix Absorption）—— 最精妙的一步</div><h3 class="s-title">3.3 矩阵吸收（Matrix Absorption）—— 最精妙的一步</h3><div class="s-body"><p>所以 MLA 选择方案 B：$\left(W^{UQ}\right)^{\top}W^{UK}$ 离线合并成一个小矩阵，解码时只对当前 token 的 $\mathbf{c}_t^{Q}$ 乘一次，历史 token 侧永远只接触 512 维的压缩向量。<strong>低秩压缩负责省显存，选对边的矩阵吸收负责省算力</strong>——两者叠加，才同时解决了 1.1 节的两个瓶颈。</p></div></section>
 <section class="slide"><div class="crumb">三 · MLA 的核心原理 / 3.3 矩阵吸收（Matrix Absorption）—— 最精妙的一步</div><h3 class="s-title">3.3 矩阵吸收（Matrix Absorption）—— 最精妙的一步</h3><div class="s-body"><h4 class="sub">3.3.2 Value 吸收：输出侧的同样把戏</h4>
