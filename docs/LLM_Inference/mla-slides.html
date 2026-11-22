@@ -174,11 +174,11 @@ window.MathJax = {
 <p class="cover-hint">按 → 或空格开始 · O 总览</p></section>
 <section class="slide toc-slide"><h3 class="s-title">目录</h3><div class="toc-grid"><div class="toc-item"><a class="toc-ch" data-go="2">一、引言：为什么需要 MLA</a><div class="toc-secs"><a data-go="3">1.1 背景：大模型推理的成本瓶颈</a>　<a data-go="4">1.2 现有解决方案概览</a>　<a data-go="5">1.3 MLA 的定位</a></div></div>
 <div class="toc-item"><a class="toc-ch" data-go="8">二、前置知识回顾</a><div class="toc-secs"><a data-go="9">2.1 标准多头注意力（MHA）与 KV Cache</a>　<a data-go="10">2.2 MQA 与 GQA</a>　<a data-go="12">2.3 低秩分解基础</a></div></div>
-<div class="toc-item"><a class="toc-ch" data-go="13">三、MLA 的核心原理</a><div class="toc-secs"><a data-go="16">3.1 核心思想：缓存「潜在向量」而不是 K/V 本身</a>　<a data-go="18">3.2 数学推导：KV 低秩联合压缩</a>　<a data-go="19">3.3 矩阵吸收（Matrix Absorption）—— 最精妙的一步</a>　<a data-go="25">3.4 解耦 RoPE（Decoupled RoPE）</a>　<a data-go="28">3.5 完整推理流程图</a></div></div>
-<div class="toc-item"><a class="toc-ch" data-go="31">四、MLA 与其他注意力机制的定量对比</a><div class="toc-secs"><a data-go="32">4.1 用 DeepSeek-V2 的实际配置算一笔账</a>　<a data-go="35">4.2 为什么 MLA 效果不降反升？</a></div></div>
-<div class="toc-item"><a class="toc-ch" data-go="36">五、PyTorch 代码实现</a><div class="toc-secs"><a data-go="37">5.1 从零实现 MLA（逐行注释版）</a>　<a data-go="39">5.2 常见坑</a></div></div>
-<div class="toc-item"><a class="toc-ch" data-go="40">六、MLA 在实际模型中的应用</a><div class="toc-secs"><a data-go="41">6.1 DeepSeek-V2：首次亮相</a>　<a data-go="42">6.2 DeepSeek-V3 / R1：规模化验证</a>　<a data-go="43">6.3 与 KV Cache 量化结合</a></div></div>
-<div class="toc-item"><a class="toc-ch" data-go="44">七、延伸话题</a><div class="toc-secs"><a data-go="45">7.1 MLA 的局限</a>　<a data-go="46">7.2 相关工作</a>　<a data-go="47">7.3 思考题与延伸阅读</a>　<a data-go="48">参考文献</a></div></div></div></section>
+<div class="toc-item"><a class="toc-ch" data-go="13">三、MLA 的核心原理</a><div class="toc-secs"><a data-go="16">3.1 核心思想：缓存「潜在向量」而不是 K/V 本身</a>　<a data-go="18">3.2 数学推导：KV 低秩联合压缩</a>　<a data-go="19">3.3 矩阵吸收（Matrix Absorption）—— 最精妙的一步</a>　<a data-go="26">3.4 解耦 RoPE（Decoupled RoPE）</a>　<a data-go="29">3.5 完整推理流程图</a></div></div>
+<div class="toc-item"><a class="toc-ch" data-go="32">四、MLA 与其他注意力机制的定量对比</a><div class="toc-secs"><a data-go="33">4.1 用 DeepSeek-V2 的实际配置算一笔账</a>　<a data-go="36">4.2 为什么 MLA 效果不降反升？</a></div></div>
+<div class="toc-item"><a class="toc-ch" data-go="37">五、PyTorch 代码实现</a><div class="toc-secs"><a data-go="38">5.1 从零实现 MLA（逐行注释版）</a>　<a data-go="40">5.2 常见坑</a></div></div>
+<div class="toc-item"><a class="toc-ch" data-go="41">六、MLA 在实际模型中的应用</a><div class="toc-secs"><a data-go="42">6.1 DeepSeek-V2：首次亮相</a>　<a data-go="43">6.2 DeepSeek-V3 / R1：规模化验证</a>　<a data-go="44">6.3 与 KV Cache 量化结合</a></div></div>
+<div class="toc-item"><a class="toc-ch" data-go="45">七、延伸话题</a><div class="toc-secs"><a data-go="46">7.1 MLA 的局限</a>　<a data-go="47">7.2 相关工作</a>　<a data-go="48">7.3 思考题与延伸阅读</a>　<a data-go="49">参考文献</a></div></div></div></section>
 <section class="slide divider"><div class="dv-no">一</div><div class="dv-title">引言：为什么需要 MLA</div></section>
 <section class="slide"><div class="crumb">一 · 引言：为什么需要 MLA / 1.1 背景：大模型推理的成本瓶颈</div><h3 class="s-title">1.1 背景：大模型推理的成本瓶颈</h3><div class="s-body"><p>大语言模型（LLM）的推理是<strong>自回归</strong>的：每生成一个新 token，都要把已有的全部上下文重新做一遍注意力。如果朴素实现，第 $t$ 步的计算量是 $O(t^2)$，生成 $N$ 个 token 的总代价将无法接受。</p>
 <p>工程上的标准解法是 <strong>KV Cache</strong>：把每一步算出的 Key、Value 向量缓存在显存里，新 token 只需要和缓存中所有历史 K/V 做一次注意力即可。这样每步的计算量降为 $O(t)$，但代价是——</p>
@@ -389,7 +389,7 @@ $$
 = \left(W_i^{UQ} \mathbf{c}_t^{Q}\right)^{\top} \left(W_i^{UK} \mathbf{c}_j^{KV}\right)
 = \left(\mathbf{c}_t^{Q}\right)^{\top} \underbrace{\left(W_i^{UQ}\right)^{\top} W_i^{UK}}_{\text{可离线预先合并}}\; \mathbf{c}_j^{KV}
 $$
-<p>中间那个矩阵 $\left(W_i^{UQ}\right)^{\top} W_i^{UK} \in \mathbb{R}^{d_c' \times d_c}$ 只由权重构成，<strong>推理前就可以合并成一个矩阵</strong>。于是：</p>
+<p>中间那个矩阵 $\left(W_i^{UQ}\right)^{\top} W_i^{UK} \in \mathbb{R}^{d_c' \times d_c}$ 只由权重构成，<strong>推理前就可以合并成一个矩阵</strong>（「可合并」是代数事实；是否真的把它物化成一张权重表是另一笔账，见 3.3.3）。于是：</p>
 <ul>
   <li>Q 侧：$\tilde{\mathbf{q}}_{t,i} = \left(\left(W_i^{UQ}\right)^{\top} W_i^{UK}\right)^{\top} \mathbf{c}_t^{Q}$，维度 $d_c$；</li>
   <li>K 侧：<strong>直接用缓存的 $\mathbf{c}_j^{KV}$ 本身</strong>，无需上投影。</li>
@@ -475,7 +475,7 @@ $$
 <foreignObject x="90" y="434" width="800" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="svg-math" style="color:#0d9488;font-size:12px;font-weight:700">低秩联合压缩极大减小 KV Cache 显存占用，结合矩阵吸收显著降低推理计算量</div></foreignObject>
 </svg>
 </div>
-<figcaption>图 3-3 ｜ 矩阵吸收的两种结合顺序（自绘）。左侧为完整展开式——$\mathbf{q}_i$ 本身也来自 $W_i^{UQ}\mathbf{c}_t^{Q}$，不是现成向量。方案 A 把 $W^{UK}$ 留在 Key 侧，$16384 \times 512$ 大矩阵乘随历史 token 数 $n$ 重复；方案 B 把 $\left(W^{UQ}\right)^{\top}W^{UK}$ 离线合并为 $d_c' \times d_c$ 小矩阵，解码时只剩 1 次小矩阵乘与 $n$ 次 512 维点积——Key 侧大矩阵上投影从 100 次降为 0 次。</figcaption>
+<figcaption>图 3-3 ｜ 矩阵吸收的两种结合顺序（自绘）。左侧为完整展开式——$\mathbf{q}_i$ 本身也来自 $W_i^{UQ}\mathbf{c}_t^{Q}$，不是现成向量。方案 A 把 $W^{UK}$ 留在 Key 侧，$16384 \times 512$ 大矩阵乘随历史 token 数 $n$ 重复；方案 B 把 $\left(W^{UQ}\right)^{\top}W^{UK}$ 离线合并为 $d_c' \times d_c$ 小矩阵，解码时只剩 1 次小矩阵乘与 $n$ 次 512 维点积——Key 侧大矩阵上投影从 100 次降为 0 次（「离线合并」为概念化展示，工程实现的取舍见 3.3.3）。</figcaption>
 </figure></div></section>
 <section class="slide"><div class="crumb">三 · MLA 的核心原理 / 3.3 矩阵吸收（Matrix Absorption）—— 最精妙的一步</div><h3 class="s-title">3.3 矩阵吸收（Matrix Absorption）—— 最精妙的一步</h3><div class="s-body"><p>所以 MLA 选择方案 B：$\left(W^{UQ}\right)^{\top}W^{UK}$ 离线合并成一个小矩阵，解码时只对当前 token 的 $\mathbf{c}_t^{Q}$ 乘一次，历史 token 侧永远只接触 512 维的压缩向量。<strong>低秩压缩负责省显存，选对边的矩阵吸收负责省算力</strong>——两者叠加，才同时解决了 1.1 节的两个瓶颈。</p></div></section>
 <section class="slide"><div class="crumb">三 · MLA 的核心原理 / 3.3 矩阵吸收（Matrix Absorption）—— 最精妙的一步</div><h3 class="s-title">3.3 矩阵吸收（Matrix Absorption）—— 最精妙的一步</h3><div class="s-body"><h4 class="sub">3.3.2 Value 吸收：输出侧的同样把戏</h4>
@@ -489,7 +489,7 @@ $$
 $$
 \mathbf{u}_t = W^{O}\, \mathbf{o}_{t,i} = \underbrace{\left(W^{O} W_i^{UV}\right)}_{\text{可离线预先合并}}\; \sum_{j} A(i,j)\, \mathbf{c}_j^{KV}
 $$
-<div class="callout key"><span class="tag">合并规律</span>$W^{UK}$ 与 $W^{UQ}$ 预先合并（Query 侧），$W^{UV}$ 与 $W^{O}$ 预先合并（输出侧）——推理时<strong>上投影不再单独计算</strong>，KV Cache 里始终只有 $\mathbf{c}^{KV}$ 和 $\mathbf{k}^R$ 两个小向量。这就是矩阵吸收的全部内容。</div>
+<div class="callout key"><span class="tag">合并规律</span>代数上 $W^{UK}$ 可吸收进 $W^{UQ}$（Query 侧）、$W^{UV}$ 可吸收进 $W^{O}$（输出侧）——推理时历史 K/V <strong>无需解压</strong>，KV Cache 里始终只有 $\mathbf{c}^{KV}$ 和 $\mathbf{k}^R$ 两个小向量。至于是否真的把合并矩阵物化成权重表，是工程选择（见 3.3.3）。</div>
 <p>至此可以看到矩阵吸收的完整图景：推理时的 MLA 在计算上等价于一个「Q 头维度 = $d_c$、K/V 共享为 $\mathbf{c}^{KV}$」的 MQA，计算量和访存量都极小。</p>
 <div class="callout"><span class="tag">直觉</span>训练时 MLA 表现为 MHA（每个头有独立的上投影矩阵，表达力强）；推理时通过矩阵吸收塌缩为 MQA（Cache 小、访存少）。<strong>训练像 MHA，推理像 MQA</strong>——这就是 MLA「两头通吃」的原因。</div></div></section>
 <section class="slide figure-slide"><div class="crumb">三 · MLA 的核心原理 / 3.3 矩阵吸收（Matrix Absorption）—— 最精妙的一步</div><h3 class="s-title">3.3 矩阵吸收（Matrix Absorption）—— 最精妙的一步</h3><div class="s-body"><figure>
@@ -563,8 +563,21 @@ $$
   <line x1="370" y1="504" x2="370" y2="538" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-i)"/>
 </svg>
 </div>
-<figcaption>图 3-4 ｜ MLA 推理模式（自绘矢量图）：紫色虚线框为<strong>离线合并</strong>矩阵 $(W^{UQ})^{\top}W^{UK}$，K 侧直接复用缓存的 $\mathbf{c}^{KV}$，无需解压；输出侧 $W^{UV}$ 与 $W^O$ 同样预先合并；黄色为解耦 RoPE 位置路径，与内容路径拼接后共同计算注意力分数。</figcaption>
+<figcaption>图 3-4 ｜ MLA 推理模式（自绘矢量图）：紫色虚线框为概念上的<strong>吸收矩阵</strong> $(W^{UQ})^{\top}W^{UK}$（工程上按在线两步吸收执行，见 3.3.3），K 侧直接复用缓存的 $\mathbf{c}^{KV}$，无需解压；输出侧 $W^{UV}$ 与 $W^O$ 同样预先合并；黄色为解耦 RoPE 位置路径，与内容路径拼接后共同计算注意力分数。</figcaption>
 </figure></div></section>
+<section class="slide"><div class="crumb">三 · MLA 的核心原理 / 3.3 矩阵吸收（Matrix Absorption）—— 最精妙的一步</div><h3 class="s-title">3.3 矩阵吸收（Matrix Absorption）—— 最精妙的一步</h3><div class="s-body"><h4 class="sub">3.3.3 工程现实：为什么「预合并」并不划算</h4>
+<p>3.3 开头的推导说 "$(W^{UQ})^{\top}W^{UK}$ 只由权重构成，推理前就可以离线合并"。这句话在<strong>代数上</strong>完全正确，但它只证明了吸收的<strong>可行性</strong>；是否真的把这张合并矩阵物化（materialize）成一张权重表，是另一回事。代入 DeepSeek-V2 的真实参数算一笔账就会发现：<strong>全量预合并反而更贵，主流实现都不这么做</strong>。</p>
+<p>在 DeepSeek-V2 的尺寸下，预合并只是把每头 $1536 \to 128 \to 512$ 的两次投影，换成 $1536 \to 512$ 的一次稠密投影——减少一次投影调用，但增加 FLOPs 和权重读取；两次投影中间的 <strong>128 维瓶颈</strong>，正是原方案更省计算的原因。沿用 $H = 128$、$d_q = 1536$（$d_c'$）、$d_h = 128$、$d_c = 512$，只算单层、内容路径的 QK，忽略 RoPE、softmax 和 V；BF16 存储，每次乘加计 2 FLOPs，权重按每个阶段完整读取一次估算：</p>
+<table>
+  <tr><th>每头</th><th>保留两次投影（在线两步吸收）</th><th>预合并为稠密投影</th></tr>
+  <tr><td>投影路径</td><td>$1536 \to 128 \to 512$</td><td>$1536 \to 512$</td></tr>
+  <tr><td>权重元素数</td><td>$128 \times (1536 + 512) = 262{,}144$</td><td>$512 \times 1536 = 786{,}432$</td></tr>
+  <tr><td>每个 Query 的投影 FLOPs</td><td>$524{,}288$</td><td>$1{,}572{,}864$（3 倍）</td></tr>
+  <tr><td>128 个头的 BF16 权重读取</td><td>64 MiB</td><td>192 MiB（3 倍）</td></tr>
+</table>
+<p>合并矩阵 $(W^{UQ})^{\top}W^{UK}$ 在数学上秩至多为 128，但一旦按稠密矩阵存储和计算，就要读、乘全部 $512 \times 1536$ 个元素——低秩优势荡然无存，投影 FLOPs 和权重字节数都变成 3 倍。而两条吸收路径最终都生成同样的 512 维 $\tilde{\mathbf{q}}$，后续与 $\mathbf{c}^{KV}$ 点积的计算量完全相同，预合并连在后面也没省到任何东西。</p>
+<div class="callout warn"><span class="tag">工程实现</span>因此主流推理框架都采用<strong>在线两步吸收</strong>而非物化合并矩阵：vLLM 在加载权重时把 <code>kv_b_proj</code> 按头拆分转置备好（<code>W_UK_T</code> / <code>W_UV</code>，SGLang 中对应 <code>w_kc</code> / <code>w_vc</code>），decode 每步只做一次 bmm 得到 $\tilde{\mathbf{q}} = (W^{UK})^{\top}\mathbf{q}^{\text{nope}}$（$128 \to 512$），注意力随即在 latent 空间以 MQA 形态执行；V 侧输出后再依次过 $W^{UV}$、$W^O$。DeepSeek 官方开源的推理参考代码（V2 / V3 的 model.py）则更保守，直接显式解压 K/V——那是正确性参考，不是性能路径。</div>
+<div class="callout key"><span class="tag">正确读法</span>「离线合并」是 MLA 的<strong>代数可行性证明</strong>：它保证历史 K/V 永远不需要被物化，decode 注意力可以在 512+64 维的 latent 空间以 MQA 形态执行——收益来自这个计算形态（KV 读取小、K 全头共享、无历史解压），而不是"合并成一张表"这个动作本身。硬件层面的系统对比（arXiv:2506.02523）也指出：吸收本质上是 MLA 内置的"用计算换访存"的权衡机制，预计算合并矩阵只是其中一个权衡点——长 KV、小 batch 的 decode 场景才是吸收的主场。</div></div></section>
 <section class="slide"><div class="crumb">三 · MLA 的核心原理 / 3.4 解耦 RoPE（Decoupled RoPE）</div><h3 class="s-title">3.4 解耦 RoPE（Decoupled RoPE）</h3><div class="s-body"><p>故事还剩一个漏洞：<strong>RoPE 位置编码</strong>。RoPE 要作用在 $\mathbf{q}, \mathbf{k}$ 上：</p>
 $$
 \mathbf{q}_{t,i} \cdot \mathbf{k}_{j,i}
