@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="CUDA 研究报告目录，包含 NVIDIA TMA 逐 Mode 技术手册。">
+<meta name="description" content="CUDA 研究报告目录，包含 NVIDIA TMA 逐 Mode 技术手册和 B300 SMEM 带宽测试。">
 <title>CUDA · 研究报告</title>
 <link rel="icon" href="data:,">
 <style>
@@ -14,7 +14,7 @@
 <nav><a href="../">← AI Research</a> · <a href="https://github.com/matlinsas/AI_Research_AI/tree/main/CUDA">GitHub 源文件</a></nav>
 <h1>CUDA</h1>
 <p>NVIDIA CUDA、PTX 与数据搬运研究。</p>
-<label class="search" for="cudaSearch"><span>检索 CUDA 子条目</span><input id="cudaSearch" type="search" placeholder="例如：TMA、Swizzle、TensorMap" autocomplete="off"></label>
+<label class="search" for="cudaSearch"><span>检索 CUDA 子条目</span><input id="cudaSearch" type="search" placeholder="例如：TMA、B300、SMEM" autocomplete="off"></label>
 <p id="resultCount" aria-live="polite"></p>
 <main>
   <article class="item" data-keywords="cuda nvidia ptx tma tensor memory access tile swizzle interleave multicast im2col reduce prefetch tensormap 张量 显存 搬运">
@@ -22,9 +22,14 @@
     <h2><a href="./tma-feature-guide/">NVIDIA TMA 逐 Mode 技术手册</a></h2>
     <p>面向 TMA 硬件与软件实现者，逐项解释 1D–5D、Swizzle、Multicast、im2col、Reduce、Prefetch 和 TensorMap 更新等模式解决的应用问题。</p>
   </article>
+  <article class="item" data-keywords="cuda b300 blackwell smem shared memory bandwidth lds sts tma cp.async modal 共享内存 读 写 带宽">
+    <p class="path">CUDA / B300_SMEM_bandwidth_test.html</p>
+    <h2><a href="./B300_SMEM_bandwidth_test.html">B300 SMEM 带宽测试</a></h2>
+    <p>Modal 单 SM 实测，分为 SMEM 读、SMEM 写和 SMEM 读写三部分，包含 TMA 交叉对照、可排序矩阵和 CSV 下载。</p>
+  </article>
 </main>
 <p id="empty" hidden>没有匹配的 CUDA 子条目。</p>
-<footer>2026-11-17 · 子条目持续整理。</footer>
+<footer>2026-11-25 · 子条目持续整理。</footer>
 <script>
 (() => {
   const input = document.getElementById('cudaSearch');
